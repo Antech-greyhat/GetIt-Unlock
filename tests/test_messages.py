@@ -216,7 +216,8 @@ class MessageFileTests(unittest.TestCase):
         env_file = self.directory / ".env"
         env_file.write_text("TARGET_REPO=alice/lab\nMESSAGES_DIR=custom-text\n", encoding="utf-8")
         config = Config.load(env_file, {})
-        self.assertEqual(config.messages_dir, self.directory / "custom-text")
+        # Windows temp directories may use an 8.3 alias that Config.load resolves.
+        self.assertEqual(config.messages_dir, (self.directory / "custom-text").resolve())
         shell_config = Config.load(env_file, {"MESSAGES_DIR": str(DEFAULT_MESSAGE_DIR)})
         self.assertEqual(shell_config.messages_dir, DEFAULT_MESSAGE_DIR)
 
