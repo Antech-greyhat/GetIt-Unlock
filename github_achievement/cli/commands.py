@@ -7,18 +7,18 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
-from . import __version__
-from .api import GitHubClient, GitHubError, WriteLimiter
-from .catalog import ACHIEVEMENTS, TIERS, target_for
-from .config import Config
-from .state import RunLock, StateStore
-from .workflows import WorkflowRunner
-from .badges import check_badges
+from .. import __version__
+from ..github.api import GitHubClient, GitHubError, WriteLimiter
+from ..core.catalog import ACHIEVEMENTS, TIERS, target_for
+from ..core.config import Config
+from ..core.state import RunLock, StateStore
+from ..workflows.runner import WorkflowRunner
+from ..github.badges import check_badges
 from .onboarding import ensure_credentials, setup
 from .ui import Choice, Console
-from .cleanup import cleanup_tracked
-from .messages import (MESSAGE_FILES, MESSAGE_LABELS, PR_WORKFLOWS, PREVIEW_OPERATION,
-                       message_directory, render_messages, validate_message_templates)
+from ..workflows.cleanup import cleanup_tracked
+from ..messages.templates import (MESSAGE_FILES, MESSAGE_LABELS, PR_WORKFLOWS, PREVIEW_OPERATION,
+                                 message_directory, render_messages, validate_message_templates)
 
 
 def positive_int(value):

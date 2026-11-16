@@ -8,7 +8,7 @@ from http.client import HTTPException
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from . import __version__
+from .. import __version__
 
 
 class GitHubError(RuntimeError):

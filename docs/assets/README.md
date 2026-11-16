@@ -1,6 +1,6 @@
 # README artwork
 
-`readme-banner.svg` and `project-info.svg` are original project artwork.
+`banners/readme-banner.svg`, `banners/project-info.svg`, `banners/star-repo.svg`, and `banners/fork-repo.svg` are original project artwork.
 
 The achievement images in `badges/` are GitHub artwork, downloaded from GitHub's public asset host on 2026-11-16. They are included locally so the README can display them without a third-party image service. The project's MIT license does not grant rights to GitHub's artwork or trademarks.
 

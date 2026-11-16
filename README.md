@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/readme-banner.svg" alt="GitHub Achievement Python — your next achievement, one workflow away" width="1200">
+  <img src="docs/assets/banners/readme-banner.svg" alt="GitHub Achievement Python — your next achievement, one workflow away" width="1200">
 </p>
 
 # GitHub Achievement Python
@@ -7,7 +7,7 @@
 Run and verify five GitHub achievement workflows from an interactive menu or a command. The app creates the required PRs, issues, or discussions in a personal repository you own and saves its progress between runs.
 
 <p align="center">
-  <img src="docs/assets/project-info.svg" alt="Python 3.11+ · Five badge workflows · No extra Python packages · MIT code license" width="1000">
+  <img src="docs/assets/banners/project-info.svg" alt="Python 3.11+ · Five badge workflows · No extra Python packages · MIT code license" width="1000">
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@ Run and verify five GitHub achievement workflows from an interactive menu or a c
 | **05 · [Check progress](#5-check-progress-and-badges)** | See completed operations and check your public badges. |
 | **06 · [Clean up](#6-clean-up-leftover-branches)** | Preview and remove verified merged branches. |
 
-[Common fixes](#common-fixes) · [Rate limits](#rate-limits-let-the-app-wait) · [Advanced options](ADVANCED.md) · [Get the app](#get-the-app)
+[Common fixes](#common-fixes) · [Rate limits](#rate-limits-let-the-app-wait) · [Advanced options](docs/advanced.md) · [Get the app](#get-the-app)
 
 ---
 
@@ -72,7 +72,7 @@ An existing, unexpired classic token with **repo** selected can be reused.
 5. Click **Generate token** and copy the value while GitHub displays it.
 6. Paste it after `GITHUB_TOKEN=` in `.env`, then save.
 
-The menu path is **Profile picture → Settings → Developer settings → Personal access tokens → Tokens (classic)**. Token creation happens in personal account settings. A classic `repo` token can access repositories its account already has permission to use; it does not ask you to select one repository. For a primary token limited to your target, follow the [fine-grained token steps](ADVANCED.md#use-a-token-limited-to-one-repository).
+The menu path is **Profile picture → Settings → Developer settings → Personal access tokens → Tokens (classic)**. Token creation happens in personal account settings. A classic `repo` token can access repositories its account already has permission to use; it does not ask you to select one repository. For a primary token limited to your target, follow the [fine-grained token steps](docs/advanced.md#use-a-token-limited-to-one-repository).
 
 ### How to create the helper token
 
@@ -103,7 +103,7 @@ The primary classic `repo` token works for all five workflows. The helper classi
 | [YOLO](#yolo) | Required | Yes |
 | [Galaxy Brain](#galaxy-brain) | Required | Yes |
 
-If the helper is only used for **Pair Extraordinaire** with default co-author settings, a classic token with no scopes selected is sufficient. A custom co-author email needs **user:email** access for verification; see [co-author email options](ADVANCED.md#co-author-email-options).
+If the helper is only used for **Pair Extraordinaire** with default co-author settings, a classic token with no scopes selected is sufficient. A custom co-author email needs **user:email** access for verification; see [co-author email options](docs/advanced.md#co-author-email-options).
 
 ### Invite the helper for YOLO and Galaxy Brain
 
@@ -213,15 +213,15 @@ Pull Shark, Pair Extraordinaire, and YOLO automatically select messages from the
 
 | File | Used for |
 | --- | --- |
-| [prtitle.txt](github_achievement/message_files/prtitle.txt) | PR titles |
-| [prdescription.txt](github_achievement/message_files/prdescription.txt) | PR descriptions |
-| [messages.txt](github_achievement/message_files/messages.txt) | Activity commit messages |
-| [mergetitle.txt](github_achievement/message_files/mergetitle.txt) | Merge commit titles |
-| [mergedescription.txt](github_achievement/message_files/mergedescription.txt) | Merge commit descriptions |
+| [prtitle.txt](github_achievement/messages/presets/prtitle.txt) | PR titles |
+| [prdescription.txt](github_achievement/messages/presets/prdescription.txt) | PR descriptions |
+| [messages.txt](github_achievement/messages/presets/messages.txt) | Activity commit messages |
+| [mergetitle.txt](github_achievement/messages/presets/mergetitle.txt) | Merge commit titles |
+| [mergedescription.txt](github_achievement/messages/presets/mergedescription.txt) | Merge commit descriptions |
 
 Each file has **12 entries** that cycle in order. Saved attempts keep the position for each account, repository, and workflow, including failed or interrupted attempts. Every message includes a unique operation ID; Pair Extraordinaire also adds the verified helper's `Co-authored-by` credit automatically.
 
-To change the wording, edit the relevant UTF-8 `.txt` file before your next run, using one entry per line. Blank lines and lines starting with `#` are ignored. The app validates messages before making changes. See [advanced message options](ADVANCED.md#message-options) for placeholders, multiline text, custom folders, and overrides.
+To change the wording, edit the relevant UTF-8 `.txt` file before your next run, using one entry per line. Blank lines and lines starting with `#` are ignored. The app validates messages before making changes. See [advanced message options](docs/advanced.md#message-options) for placeholders, multiline text, custom folders, and overrides.
 
 ---
 
@@ -245,7 +245,7 @@ Choose a badge in the interactive menu or use its command below. Each workflow u
 | Gold (x4) | 48 | `--tier gold` |
 
 1. Complete the PR repository setup in Step 2 and save the [helper's token](#how-to-create-the-helper-token) in `HELPER_TOKEN`.
-2. Leave `COAUTHOR_NAME` and `COAUTHOR_EMAIL` unset for automatic identity and GitHub noreply email selection. For overrides, use [co-author email options](ADVANCED.md#co-author-email-options).
+2. Leave `COAUTHOR_NAME` and `COAUTHOR_EMAIL` unset for automatic identity and GitHub noreply email selection. For overrides, use [co-author email options](docs/advanced.md#co-author-email-options).
 3. Check the setup:
 
    ```powershell
@@ -420,7 +420,7 @@ In the menu, choose **Clean up merged branches**, read the preview, then select 
 
 The app spaces API writes **eight seconds apart** and pauses between operations. It honors GitHub's rate-limit headers for REST and GraphQL. A secondary limit without a retry time starts with a wait of at least 60 seconds; repeated limits get longer waits.
 
-If GitHub requires a wait longer than five minutes or retries are exhausted, the run stops with a retry hint. Completed progress stays saved. Wait before restarting; if branch cleanup hit the limit, run `python main.py cleanup --execute` after the wait. See [API pacing and retries](ADVANCED.md#api-pacing-and-retries) for details.
+If GitHub requires a wait longer than five minutes or retries are exhausted, the run stops with a retry hint. Completed progress stays saved. Wait before restarting; if branch cleanup hit the limit, run `python main.py cleanup --execute` after the wait. See [API pacing and retries](docs/advanced.md#api-pacing-and-retries) for details.
 
 ---
 
@@ -434,8 +434,8 @@ If GitHub requires a wait longer than five minutes or retries are exhausted, the
 | `Resource not accessible by personal access token` | Follow the [token access checklist below](#fix-resource-not-accessible-by-personal-access-token). |
 | `0 operation(s) to run` | Saved progress meets the chosen tier. Use `--count 1` if you want one new operation. |
 | PR cannot merge | Check conflicts, required reviews/checks, and **Allow merge commits**. |
-| Co-author not recognized | Check the helper account. See [co-author email options](ADVANCED.md#co-author-email-options). |
-| `.env` changes seem ignored | An old shell variable can override the file. See [environment precedence](ADVANCED.md#environment-precedence). |
+| Co-author not recognized | Check the helper account. See [co-author email options](docs/advanced.md#co-author-email-options). |
+| `.env` changes seem ignored | An old shell variable can override the file. See [environment precedence](docs/advanced.md#environment-precedence). |
 | Badge is not visible | Wait and run `verify` again; do not assume more PRs are needed. |
 
 ### Fix `Resource not accessible by personal access token`
@@ -444,8 +444,8 @@ This message means a token lacks access to the requested resource or action.
 
 1. Confirm that `GITHUB_TOKEN` belongs to the owner of `TARGET_REPO` and `HELPER_TOKEN` belongs to a different account.
 2. For **YOLO or Galaxy Brain**, check the helper's classic `repo` token and accepted invitation to this exact target. A pending invitation or access to a fork is insufficient. Pair Extraordinaire needs no invitation.
-3. For **Galaxy Brain**, enable Discussions and a **Question and Answer** category. For a fine-grained primary token, check the [workflow permissions](ADVANCED.md#use-a-token-limited-to-one-repository).
-4. Save `.env`, restart the CLI, and run the badge's `doctor --workflow` command. If old credentials are still used, check [environment precedence](ADVANCED.md#environment-precedence). Inspect `status --history` before retrying an attempt that already created resources.
+3. For **Galaxy Brain**, enable Discussions and a **Question and Answer** category. For a fine-grained primary token, check the [workflow permissions](docs/advanced.md#use-a-token-limited-to-one-repository).
+4. Save `.env`, restart the CLI, and run the badge's `doctor --workflow` command. If old credentials are still used, check [environment precedence](docs/advanced.md#environment-precedence). Inspect `status --history` before retrying an attempt that already created resources.
 
 ---
 
@@ -464,4 +464,37 @@ The downloaded folder contains this app. `TARGET_REPO` identifies the personal G
 
 ---
 
-[↑ Back to top](#github-achievement-python) · [Advanced options](ADVANCED.md) · [License](LICENSE) · [Artwork sources](docs/assets/README.md)
+## Project layout
+
+Use these folders when changing the CLI, editing its messages, or looking for documentation:
+
+| Path | What it contains |
+| --- | --- |
+| `main.py` | Launcher for `python main.py` commands |
+| `github_achievement/cli/` | Commands, account setup, and terminal menus |
+| `github_achievement/core/` | Achievement definitions, configuration, and saved progress |
+| `github_achievement/github/` | GitHub API client and public badge checks |
+| `github_achievement/workflows/` | Badge workflows and verified branch cleanup |
+| `github_achievement/messages/templates.py` | Message loading, selection, and validation |
+| `github_achievement/messages/presets/` | The five editable PR and commit message files |
+| `tests/` | Offline tests for the CLI and GitHub workflows |
+| [docs/advanced.md](docs/advanced.md) | Token permissions, message overrides, and development options |
+| `docs/assets/banners/` | Project, star, and fork banners |
+| `docs/assets/badges/` | GitHub achievement artwork |
+
+---
+
+## Support the project
+
+If this guide or CLI helps you, [star the repository](https://github.com/Antech-greyhat/GetIt-Unlock) to support the project. Open the link and click **Star** at the top of the repository page.
+
+To customize the CLI or contribute improvements, [fork the repository](https://github.com/Antech-greyhat/GetIt-Unlock/fork) to create your own copy.
+
+<p align="center">
+  <a href="https://github.com/Antech-greyhat/GetIt-Unlock"><img src="docs/assets/banners/star-repo.svg" alt="Star GetIt-Unlock on GitHub" width="260" height="76"></a>
+  <a href="https://github.com/Antech-greyhat/GetIt-Unlock/fork"><img src="docs/assets/banners/fork-repo.svg" alt="Fork GetIt-Unlock on GitHub" width="260" height="76"></a>
+</p>
+
+---
+
+[↑ Back to top](#github-achievement-python) · [Advanced options](docs/advanced.md) · [License](LICENSE) · [Artwork sources](docs/assets/README.md)

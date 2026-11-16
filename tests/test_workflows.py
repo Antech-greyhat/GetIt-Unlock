@@ -5,11 +5,11 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from github_achievement.api import GitHubError
-from github_achievement.config import Config
-from github_achievement.messages import render_messages
-from github_achievement.state import StateStore
-from github_achievement.workflows import WorkflowRunner
+from github_achievement.github.api import GitHubError
+from github_achievement.core.config import Config
+from github_achievement.messages.templates import render_messages
+from github_achievement.core.state import StateStore
+from github_achievement.workflows.runner import WorkflowRunner
 
 
 REPO = "/repos/alice/lab"

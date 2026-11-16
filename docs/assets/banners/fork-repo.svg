@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="76" viewBox="0 0 260 76" role="img" aria-labelledby="title desc">
+  <title id="title">Fork the repository</title>
+  <desc id="desc">Create your own copy of GetIt-Unlock on GitHub.</desc>
+  <rect x="1" y="1" width="258" height="74" rx="12" fill="#142019" stroke="#365342"/>
+  <g fill="none" stroke="#87e6ad" stroke-width="2.5" stroke-linecap="round">
+    <path d="M28 28v20M44 28v5c0 7-16 7-16 14"/>
+    <circle cx="28" cy="24" r="4"/>
+    <circle cx="44" cy="24" r="4"/>
+    <circle cx="28" cy="52" r="4"/>
+  </g>
+  <g font-family="'Segoe UI', sans-serif">
+    <text x="68" y="34" fill="#f1f7f3" font-size="18" font-weight="600">Fork the repository</text>
+    <text x="68" y="54" fill="#b1c4b9" font-size="12">Create your own copy</text>
+  </g>
+</svg>

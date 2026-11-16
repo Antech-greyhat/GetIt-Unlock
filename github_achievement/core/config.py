@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
 
-from .messages import MESSAGE_FILES
+from ..messages.templates import MESSAGE_FILES
 
 
 def read_env(path: Path) -> dict[str, str]:

@@ -4,9 +4,9 @@ import sys
 import tempfile
 from dataclasses import replace
 
-from .api import GitHubClient
-from .catalog import ACHIEVEMENTS
-from .config import Config, read_env, validate_repo
+from ..github.api import GitHubClient
+from ..core.catalog import ACHIEVEMENTS
+from ..core.config import Config, read_env, validate_repo
 from .ui import Choice, Console
 
 

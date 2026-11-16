@@ -4,9 +4,9 @@ import time
 from datetime import datetime
 from urllib.parse import quote, urlencode
 
-from .api import GitHubError
+from ..github.api import GitHubError
 from .cleanup import delete_merged_branch
-from .messages import PR_WORKFLOWS, render_messages, validate_message_templates
+from ..messages.templates import PR_WORKFLOWS, render_messages, validate_message_templates
 
 
 CATEGORIES_QUERY = """query Categories($owner: String!, $name: String!, $cursor: String) {
