@@ -3,20 +3,20 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "github-achievement-python"
+name = "GetIt-Unlock"
 version = "0.2.0"
-description = "A Python CLI for GitHub achievement workflows"
+description = "GetIt-Unlock: a Python CLI for GitHub achievement workflows"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = []
 
 [project.scripts]
-github-achievement = "github_achievement.cli:main"
+getit-unlock = "getit_unlock.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["github_achievement*"]
+include = ["getit_unlock*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-"github_achievement.messages" = ["presets/*.txt"]
+"getit_unlock.messages" = ["presets/*.txt"]

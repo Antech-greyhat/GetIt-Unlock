@@ -72,7 +72,7 @@ Keep `.achievement-state/progress.sqlite3` between runs. Use `--state-dir PATH` 
 
 Pull Shark, Pair Extraordinaire, and YOLO automatically read the five [predefined message files](../README.md#predefined-pr-and-commit-messages). There is no message-entry prompt. The bundled files work when running from source or installing the Python package.
 
-To keep your own files in a separate folder, copy all five `.txt` files from `github_achievement/messages/presets/` to that folder, then optionally set:
+To keep your own files in a separate folder, copy all five `.txt` files from `getit_unlock/messages/presets/` to that folder, then optionally set:
 
 ```dotenv
 MESSAGES_DIR=my-messages
@@ -143,7 +143,7 @@ python main.py verify --account YOUR_USERNAME --json
 python main.py --help
 ```
 
-`setup` can create an initialized repository or configure a helper. `doctor` only checks an existing repository. `python -m github_achievement` and an installed `github-achievement` command still work as alternatives to `python main.py`.
+`setup` can create an initialized repository or configure a helper. `doctor` only checks an existing repository. `python -m getit_unlock` and an installed `getit-unlock` command still work as alternatives to `python main.py`.
 
 Public badge checks report visible, not visible, or unknown. They do not infer tier levels or distinguish a newly awarded badge from one you already had. Hidden badges, delayed awards and changed GitHub markup limit what can be confirmed. `--wait-for-badge 120` waits after a successful run; `--skip-badge-check` skips the public profile check. Neither setting changes contribution counts.
 

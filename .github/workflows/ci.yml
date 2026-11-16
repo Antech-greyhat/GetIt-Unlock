@@ -22,7 +22,7 @@ jobs:
       - run: python -m pip install .
       - name: Check installed CLI
         working-directory: ${{ runner.temp }}
-        run: github-achievement list
+        run: getit-unlock list
       - name: Check installed message presets
         working-directory: ${{ runner.temp }}
-        run: github-achievement --env-file "${{ github.workspace }}/.env.example" run pull-shark --count 1 --dry-run
+        run: getit-unlock --env-file "${{ github.workspace }}/.env.example" run pull-shark --count 1 --dry-run

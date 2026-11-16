@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/assets/banners/readme-banner.svg" alt="GitHub Achievement Python — your next achievement, one workflow away" width="1200">
+  <img src="docs/assets/banners/readme-banner.svg" alt="GetIt-Unlock — your next achievement, one workflow away" width="1200">
 </p>
 
-# GitHub Achievement Python
+# GetIt-Unlock
 
 Run and verify five GitHub achievement workflows from an interactive menu or a command. The app creates the required PRs, issues, or discussions in a personal repository you own and saves its progress between runs.
 
@@ -136,6 +136,8 @@ You should see `Connected as your-username to your-username/your-repository`, wi
 
 If your computer uses `python3`, replace `python` with `python3` throughout this guide. On Windows, an existing project virtual environment can be used as `.venv\Scripts\python`. No package installation is needed to run the source.
 
+The module launcher is `python -m getit_unlock`; after installing the package, the equivalent command is `getit-unlock`.
+
 ---
 
 ## 3. Run your first PR test
@@ -213,11 +215,11 @@ Pull Shark, Pair Extraordinaire, and YOLO automatically select messages from the
 
 | File | Used for |
 | --- | --- |
-| [prtitle.txt](github_achievement/messages/presets/prtitle.txt) | PR titles |
-| [prdescription.txt](github_achievement/messages/presets/prdescription.txt) | PR descriptions |
-| [messages.txt](github_achievement/messages/presets/messages.txt) | Activity commit messages |
-| [mergetitle.txt](github_achievement/messages/presets/mergetitle.txt) | Merge commit titles |
-| [mergedescription.txt](github_achievement/messages/presets/mergedescription.txt) | Merge commit descriptions |
+| [prtitle.txt](getit_unlock/messages/presets/prtitle.txt) | PR titles |
+| [prdescription.txt](getit_unlock/messages/presets/prdescription.txt) | PR descriptions |
+| [messages.txt](getit_unlock/messages/presets/messages.txt) | Activity commit messages |
+| [mergetitle.txt](getit_unlock/messages/presets/mergetitle.txt) | Merge commit titles |
+| [mergedescription.txt](getit_unlock/messages/presets/mergedescription.txt) | Merge commit descriptions |
 
 Each file has **12 entries** that cycle in order. Saved attempts keep the position for each account, repository, and workflow, including failed or interrupted attempts. Every message includes a unique operation ID; Pair Extraordinaire also adds the verified helper's `Co-authored-by` credit automatically.
 
@@ -471,12 +473,12 @@ Use these folders when changing the CLI, editing its messages, or looking for do
 | Path | What it contains |
 | --- | --- |
 | `main.py` | Launcher for `python main.py` commands |
-| `github_achievement/cli/` | Commands, account setup, and terminal menus |
-| `github_achievement/core/` | Achievement definitions, configuration, and saved progress |
-| `github_achievement/github/` | GitHub API client and public badge checks |
-| `github_achievement/workflows/` | Badge workflows and verified branch cleanup |
-| `github_achievement/messages/templates.py` | Message loading, selection, and validation |
-| `github_achievement/messages/presets/` | The five editable PR and commit message files |
+| `getit_unlock/cli/` | Commands, account setup, and terminal menus |
+| `getit_unlock/core/` | Achievement definitions, configuration, and saved progress |
+| `getit_unlock/github/` | GitHub API client and public badge checks |
+| `getit_unlock/workflows/` | Badge workflows and verified branch cleanup |
+| `getit_unlock/messages/templates.py` | Message loading, selection, and validation |
+| `getit_unlock/messages/presets/` | The five editable PR and commit message files |
 | `tests/` | Offline tests for the CLI and GitHub workflows |
 | [docs/advanced.md](docs/advanced.md) | Token permissions, message overrides, and development options |
 | `docs/assets/banners/` | Project, star, and fork banners |
@@ -497,4 +499,4 @@ To customize the CLI or contribute improvements, [fork the repository](https://g
 
 ---
 
-[↑ Back to top](#github-achievement-python) · [Advanced options](docs/advanced.md) · [License](LICENSE) · [Artwork sources](docs/assets/README.md)
+[↑ Back to top](#getit-unlock) · [Advanced options](docs/advanced.md) · [License](LICENSE) · [Artwork sources](docs/assets/README.md)

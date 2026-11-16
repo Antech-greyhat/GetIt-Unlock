@@ -8,6 +8,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
 from urllib.request import Request, build_opener
 
+from .. import USER_AGENT
 from .api import NoRedirect
 from ..core.catalog import ACHIEVEMENTS
 
@@ -63,7 +64,7 @@ class ProfileParser(HTMLParser):
 def fetch_profile(account, *, opener=None):
     # Intentionally never sends API tokens or authenticated cookies to the website.
     request = Request(f"https://github.com/{account}?tab=achievements", headers={
-        "User-Agent": "github-achievement-python/0.2.0", "Accept": "text/html",
+        "User-Agent": USER_AGENT, "Accept": "text/html",
     })
     with (opener or build_opener(NoRedirect())).open(request, timeout=15) as response:
         return response.read(4_000_000).decode("utf-8", errors="replace")

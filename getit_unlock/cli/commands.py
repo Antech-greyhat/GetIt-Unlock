@@ -7,7 +7,7 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
-from .. import __version__
+from .. import PROJECT_NAME, __version__
 from ..github.api import GitHubClient, GitHubError, WriteLimiter
 from ..core.catalog import ACHIEVEMENTS, TIERS, target_for
 from ..core.config import Config
@@ -49,8 +49,11 @@ def badge_wait(value):
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(prog="github-achievement", description="GitHub achievement workflows in Python. Run without a command for the menu.")
-    parser.add_argument("--version", action="version", version=__version__)
+    parser = argparse.ArgumentParser(
+        prog="getit-unlock",
+        description=f"{PROJECT_NAME}: GitHub achievement workflows in Python. Run without a command for the menu.",
+    )
+    parser.add_argument("--version", action="version", version=f"{PROJECT_NAME} {__version__}")
     common_arguments(parser)
     subs = parser.add_subparsers(dest="command")
     definitions = (
