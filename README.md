@@ -1,8 +1,42 @@
+<p align="center">
+  <img src="docs/assets/readme-banner.svg" alt="GitHub Achievement Python — your next achievement, one workflow away" width="1200">
+</p>
+
 # GitHub Achievement Python
 
 Run GitHub achievement workflows from a menu or a command.
 
-**Start with `.env`, then run the commands below.** If you have not downloaded the app, use [Get the app](#get-the-app) first. You need Python 3.11 or newer. No extra Python packages are required.
+<p align="center">
+  <img src="docs/assets/project-info.svg" alt="Python 3.11+ · Five badge workflows · No extra Python packages · MIT code license" width="1000">
+</p>
+
+<p align="center">
+  <a href="#pull-shark"><img src="docs/assets/badges/pull-shark.png" alt="Pull Shark guide" title="Pull Shark" width="88" height="88"></a>
+  <a href="#pair-extraordinaire"><img src="docs/assets/badges/pair-extraordinaire.png" alt="Pair Extraordinaire guide" title="Pair Extraordinaire" width="88" height="88"></a>
+  <a href="#quickdraw"><img src="docs/assets/badges/quickdraw.png" alt="Quickdraw guide" title="Quickdraw" width="88" height="88"></a>
+  <a href="#yolo"><img src="docs/assets/badges/yolo.png" alt="YOLO guide" title="YOLO" width="88" height="88"></a>
+  <a href="#galaxy-brain"><img src="docs/assets/badges/galaxy-brain.png" alt="Galaxy Brain guide" title="Galaxy Brain" width="88" height="88"></a>
+</p>
+
+**Badge guides:** [Pull Shark](#pull-shark) · [Pair Extraordinaire](#pair-extraordinaire) · [Quickdraw](#quickdraw) · [YOLO](#yolo) · [Galaxy Brain](#galaxy-brain)
+
+> [!TIP]
+> **Start with `.env`, then follow the steps below.** If you have not downloaded the app, use [Get the app](#get-the-app) first. You need Python 3.11 or newer. No extra Python packages are required.
+
+## Find your next step
+
+| Step | What you will do |
+| :--- | :--- |
+| **01 · [Set up tokens](#1-put-your-tokens-in-env)** | Configure your primary account, target repository, and optional helper. |
+| **02 · [Check the connection](#2-check-the-repository-and-connection)** | Confirm the repository is ready and run `doctor`. |
+| **03 · [Try Pull Shark](#3-run-your-first-pr-test)** | Run your first PR workflow from a command or the menu. |
+| **04 · [Choose another badge](#4-run-another-badge)** | Follow the guide for Pair Extraordinaire, Quickdraw, YOLO, or Galaxy Brain. |
+| **05 · [Check progress](#5-check-progress-and-badges)** | See completed operations and check your public badges. |
+| **06 · [Clean up](#6-clean-up-leftover-branches)** | Preview and remove verified merged branches. |
+
+[Common fixes](#common-fixes) · [Rate limits](#rate-limits-let-the-app-wait) · [Advanced options](ADVANCED.md) · [Get the app](#get-the-app)
+
+---
 
 ## 1. Put your tokens in `.env`
 
@@ -18,7 +52,8 @@ Save the file. Use `.env`, not `.env.txt`. Replace `your-username/your-repositor
 
 ### Two accounts, one target repository
 
-**Use one repository owned by your primary account. The helper does not need to create or fork a repository.** Keep using that same repository for all badges.
+> [!IMPORTANT]
+> **Use one repository owned by your primary account.** The helper does not need to create or fork a repository. Keep using that same repository for all badges.
 
 | Account | Repository relationship | Token goes in |
 | --- | --- | --- |
@@ -83,11 +118,11 @@ For **YOLO and Galaxy Brain**, the helper must also accept the invitation to tha
 
 | Badge | Helper token | Must the helper accept a repository invitation? |
 | --- | --- | --- |
-| Pull Shark | Not needed | No |
-| Quickdraw | Not needed | No |
-| Pair Extraordinaire | Required; the helper token created above works | No |
-| YOLO | Required; classic token with **repo** selected | Yes |
-| Galaxy Brain | Required; classic token with **repo** selected | Yes |
+| [Pull Shark](#pull-shark) | Not needed | No |
+| [Quickdraw](#quickdraw) | Not needed | No |
+| [Pair Extraordinaire](#pair-extraordinaire) | Required; the helper token created above works | No |
+| [YOLO](#yolo) | Required; classic token with **repo** selected | Yes |
+| [Galaxy Brain](#galaxy-brain) | Required; classic token with **repo** selected | Yes |
 
 The **repo** scope also gives a token access to other repositories its account can access. If you only need **Pair Extraordinaire** with the default co-author settings, a classic helper token with no scopes selected is sufficient. A custom `COAUTHOR_EMAIL` requires **user:email** access on the helper token so the app can verify it; see [co-author email options](ADVANCED.md#co-author-email-options).
 
@@ -103,9 +138,12 @@ For a primary token limited to one repository, see the optional [fine-grained to
 
 Pull Shark and Quickdraw use only the primary account. The same primary token can be kept in `.env` when changing badges.
 
-Never share or commit `.env`. Each person running this app uses their own tokens. The app reads `.env` automatically; you do not need to paste tokens into commands.
+> [!IMPORTANT]
+> **Never share or commit `.env`.** Each person running this app uses their own tokens. The app reads `.env` automatically; you do not need to paste tokens into commands.
 
 PR titles, descriptions, and commit messages are selected automatically from the included [message files](#predefined-pr-and-commit-messages). You do not need to type messages or add message settings to `.env`.
+
+---
 
 ## 2. Check the repository and connection
 
@@ -122,11 +160,21 @@ You should see `Connected as your-username to your-username/your-repository`, wi
 
 Already using the project's virtual environment on Windows? Replace `python` with `.venv\Scripts\python`. You do not need to install the app as a package.
 
+---
+
 ## 3. Run your first PR test
+
+### Pull Shark
+
+<p>
+  <img src="docs/assets/badges/pull-shark.png" alt="GitHub Pull Shark achievement badge" width="120" height="120">
+</p>
+
+**Goal:** merge pull requests. **Base workflow target:** 2 completed PR operations. **Helper:** not needed.
 
 After completing Steps 1 and 2, choose either option below. Both use the tokens and repository saved in `.env`.
 
-### Option 1: Run a command
+#### Option 1: Run a command
 
 To work toward the base Pull Shark badge:
 
@@ -144,7 +192,7 @@ python main.py run pull-shark --count 1 --execute
 
 The app creates a branch, makes a small activity-file change, opens and merges a PR, verifies the merge, and removes the temporary branch. Each operation takes time because API writes are paced.
 
-### Option 2: Use the interactive CLI
+#### Option 2: Use the interactive CLI
 
 Start the menu from the project folder:
 
@@ -169,6 +217,8 @@ Use **Up/Down** to highlight an option and **Enter** to select it. You can also 
 7. Wait for the progress display to finish, then press **Enter** to return to the dashboard.
 
 From the dashboard, select **Your progress** to see completed operations or **Check GitHub badges** to check your public profile. For leftover branches, select **Clean up merged branches**, read the preview, then select **Remove verified merged branches**.
+
+[↑ Badge guides](#find-your-next-step)
 
 ### Predefined PR and commit messages
 
@@ -217,11 +267,19 @@ Use one message per line. Blank lines and lines beginning with `#` are ignored. 
 
 For literal braces, write `{{` and `}}`. If an older `PR_TITLE`, `PR_BODY`, `COMMIT_MESSAGE`, `MERGE_TITLE`, or `MERGE_MESSAGE` setting is overriding a file, remove that message setting from `.env` or your shell. Keep your tokens. See [advanced message options](ADVANCED.md#message-options) for using a separate folder or an explicit override.
 
+---
+
 ## 4. Run another badge
 
 Use **Option 2** above and select the badge you want, or run its command below. Complete the listed prerequisites first. Use one command at a time; `--execute` performs the work, and leaving it out shows a preview.
 
 ### Pair Extraordinaire
+
+<p>
+  <img src="docs/assets/badges/pair-extraordinaire.png" alt="GitHub Pair Extraordinaire achievement badge" width="120" height="120">
+</p>
+
+**Goal:** merge a PR with a co-authored commit. **Base workflow target:** 1 completed PR operation. **Helper:** required; no invitation needed.
 
 **Repository:** use the primary account's repository. The helper does not need its own repository, a fork, or a collaborator invitation for this badge. All GitHub writes use the primary token; the helper token is used to read the co-author's identity.
 
@@ -230,28 +288,48 @@ Use **Option 2** above and select the badge you want, or run its command below. 
 3. Leave `COAUTHOR_NAME` and `COAUTHOR_EMAIL` unset unless you need an override. The app gets the helper's identity automatically and checks that GitHub recognizes both commit authors. A custom co-author email must be verified on the helper account, and the helper token needs **user:email** access to check it.
 4. Check the setup:
 
-```powershell
-python main.py doctor --workflow pair-extraordinaire
-```
+   ```powershell
+   python main.py doctor --workflow pair-extraordinaire
+   ```
 
 5. If the check passes, run:
 
-```powershell
-python main.py run pair-extraordinaire --tier base --execute
-```
+   ```powershell
+   python main.py run pair-extraordinaire --tier base --execute
+   ```
+
+[↑ Badge guides](#find-your-next-step)
+
+---
 
 ### Quickdraw
+
+<p>
+  <img src="docs/assets/badges/quickdraw.png" alt="GitHub Quickdraw achievement badge" width="120" height="120">
+</p>
+
+**Goal:** close an issue within five minutes. **Base workflow target:** 1 completed issue operation. **Helper:** not needed.
 
 1. In your test repository, open **Settings → General → Features** and enable **Issues**.
 2. Run:
 
-```powershell
-python main.py run quickdraw --tier base --execute
-```
+   ```powershell
+   python main.py run quickdraw --tier base --execute
+   ```
 
 This opens and closes an issue within five minutes. No helper is needed.
 
+[↑ Badge guides](#find-your-next-step)
+
+---
+
 ### YOLO
+
+<p>
+  <img src="docs/assets/badges/yolo.png" alt="GitHub YOLO achievement badge" width="120" height="120">
+</p>
+
+**Goal:** merge a PR without a review. **Base workflow target:** 1 completed PR operation. **Helper:** required, with an accepted repository invitation.
 
 **Repository:** both accounts use the primary account's repository. The primary opens the PR there and the helper merges it there. The helper does not create or fork a repository.
 
@@ -263,19 +341,29 @@ This opens and closes an issue within five minutes. No helper is needed.
 6. As the owner, check **Settings → Collaborators** again: the helper should have access, with no pending invitation. If the helper already accepted an invitation for Galaxy Brain in this repository, skip sending another invitation and reuse that access.
 7. Check the setup:
 
-```powershell
-python main.py doctor --workflow yolo
-```
+   ```powershell
+   python main.py doctor --workflow yolo
+   ```
 
 8. If the check passes, run:
 
-```powershell
-python main.py run yolo --tier base --execute
-```
+   ```powershell
+   python main.py run yolo --tier base --execute
+   ```
 
 The helper merges the PR without a review. Existing branch rules still apply.
 
+[↑ Badge guides](#find-your-next-step)
+
+---
+
 ### Galaxy Brain
+
+<p>
+  <img src="docs/assets/badges/galaxy-brain.png" alt="GitHub Galaxy Brain achievement badge" width="120" height="120">
+</p>
+
+**Goal:** have your answers accepted in Q&A Discussions. **Base workflow target:** 2 completed accepted-answer operations. **Helper:** required, with an accepted repository invitation.
 
 This workflow needs **two different accounts**. The helper posts questions, your primary account answers, and the helper marks those answers as accepted.
 
@@ -287,11 +375,11 @@ This workflow needs **two different accounts**. The helper posts questions, your
 2. Sign in to the **helper account** and create its own classic token with **repo** selected using [How to create the helper token](#how-to-create-the-helper-token). This happens in the helper's personal settings, not the repository settings. If you already have a working helper classic **repo** token, reuse it.
 3. Put that second token in `HELPER_TOKEN`. Check that `TARGET_REPO` points to your test repository, then save `.env`:
 
-```dotenv
-GITHUB_TOKEN=YOUR_REPOSITORY_OWNER_TOKEN
-TARGET_REPO=your-username/your-repository
-HELPER_TOKEN=YOUR_SECOND_ACCOUNT_TOKEN
-```
+   ```dotenv
+   GITHUB_TOKEN=YOUR_REPOSITORY_OWNER_TOKEN
+   TARGET_REPO=your-username/your-repository
+   HELPER_TOKEN=YOUR_SECOND_ACCOUNT_TOKEN
+   ```
 
 Replace the placeholders with your tokens locally, and replace `your-username/your-repository` with a repository owned by your primary account. You do not select a repository when creating a classic token: the owner's account already owns the target, and the helper gains access by accepting the invitation in the next step.
 
@@ -347,7 +435,12 @@ To check whether the badge is visible on your primary account's public profile, 
 python main.py verify --achievement galaxy-brain --wait 120
 ```
 
-GitHub decides when to award the badge. If it is not visible yet, check again later; completing the workflow does not guarantee an immediate award.
+> [!NOTE]
+> GitHub decides when to award the badge. If it is not visible yet, check again later; completing the workflow does not guarantee an immediate award.
+
+[↑ Badge guides](#find-your-next-step)
+
+---
 
 ## 5. Check progress and badges
 
@@ -365,6 +458,8 @@ python main.py verify --achievement pull-shark --wait 120
 ```
 
 Keep the `.achievement-state` folder. It holds progress for each account and repository. Do not delete it to retry a failed run. For failure details, use `python main.py status --history`.
+
+---
 
 ## 6. Clean up leftover branches
 
@@ -384,11 +479,15 @@ Cleanup only removes recorded workflow branches whose PR is merged and whose com
 
 Run one copy of the app at a time and avoid editing its temporary branches while it runs.
 
+---
+
 ## Rate limits: let the app wait
 
 The app spaces API writes eight seconds apart and adds a pause between operations. It reads GitHub's rate-limit headers and waits when instructed. A secondary limit with no retry time gets a wait of at least 60 seconds; repeated limits get longer waits. REST and GraphQL limits are handled.
 
 If GitHub asks for a wait longer than five minutes, or retries are exhausted, the run stops and shows when to retry. Completed progress stays saved. Do not restart repeatedly to bypass the wait. If the limit happened during branch cleanup, run `python main.py cleanup --execute` after the wait.
+
+---
 
 ## Common fixes
 
@@ -416,6 +515,8 @@ This message means a token lacks access to the requested resource or action. Cre
 
 An accepted invitation and a correctly scoped token are separate requirements. The helper can keep an existing token if it already has the right type and permissions; there is no special token created by accepting an invitation.
 
+---
+
 ## Get the app
 
 Install [Python 3.11+](https://www.python.org/downloads/) and [Git](https://git-scm.com/downloads). Replace `SOURCE_REPO_URL` with the GitHub URL where this CLI is published:
@@ -427,4 +528,6 @@ cd github-achievement-python
 
 Or download its ZIP from GitHub and extract it. Then start at **Step 1: `.env`** above. The cloned source repository and your `TARGET_REPO` are separate: the first contains this app; the second receives the test PRs.
 
-[Advanced options](ADVANCED.md) · [License](LICENSE)
+---
+
+[↑ Back to top](#github-achievement-python) · [Advanced options](ADVANCED.md) · [License](LICENSE) · [Artwork sources](docs/assets/README.md)
