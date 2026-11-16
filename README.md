@@ -10,28 +10,28 @@ Open the project folder. Create a file named **`.env`** next to `main.py`, or ed
 
 ```dotenv
 GITHUB_TOKEN=PASTE_YOUR_PRIMARY_TOKEN_HERE
-TARGET_REPO=technorant/test
+TARGET_REPO=your-username/your-repository
 HELPER_TOKEN=
 ```
 
-Save the file. Use `.env`, not `.env.txt`. These examples use `technorant/test`; other users should put **their own** `username/repository` in `TARGET_REPO`.
+Save the file. Use `.env`, not `.env.txt`. Replace `your-username/your-repository` with **your own** `username/repository` in `TARGET_REPO`.
 
 ### Two accounts, one target repository
 
-**Use one repository owned by your primary account. The helper does not need to create or fork a repository.** For your existing `technorant/test`, keep using that repository for all badges.
+**Use one repository owned by your primary account. The helper does not need to create or fork a repository.** Keep using that same repository for all badges.
 
 | Account | Repository relationship | Token goes in |
 | --- | --- | --- |
-| Primary account, such as `technorant` | Owns `technorant/test`; the app performs the primary actions as this account | `GITHUB_TOKEN` |
+| Primary account | Owns the target repository; the app performs the primary actions as this account | `GITHUB_TOKEN` |
 | Helper account, a different GitHub username | Helps in that same repository; needs an accepted invitation for YOLO and Galaxy Brain | `HELPER_TOKEN` |
 
-`TARGET_REPO` stays **`technorant/test`** for both accounts. Run the CLI once on your computer with both tokens in the same local `.env`; the app switches between them for the required actions. The helper does not need to run a separate copy of the CLI. The two tokens must belong to different accounts.
+`TARGET_REPO` stays set to **your primary account's repository** for both accounts. Run the CLI once on your computer with both tokens in the same local `.env`; the app switches between them for the required actions. The helper does not need to run a separate copy of the CLI. The two tokens must belong to different accounts.
 
 If you do not have a target repository yet, sign in as your **primary account**, open [Create a repository](https://github.com/new), choose that account as the owner, enter a repository name, and initialize it with a README. Put the resulting `owner/name` in `TARGET_REPO`. One target is enough for all five badges; enable Issues or Discussions when the chosen badge needs them.
 
 **A token belongs to an account, not to an invitation.** Create each token from that account's personal settings. A classic token with `repo` scope can use repository access that its account already has; it cannot grant access by itself. For YOLO and Galaxy Brain, the accepted invitation gives the helper access to the primary account's repository, and the helper's token lets the CLI use that access. Classic token creation does not ask you to select a particular repository.
 
-If the helper has already accepted the invitation to `technorant/test`, that part is done. Keep the same target and create or reuse the helper's own token. A working classic `repo` token can be created before or after accepting the invitation; accepting it alone does not require a new token. Forking creates a separate repository and is not part of this app's helper setup.
+If the helper has already accepted the invitation to your target repository, that part is done. Keep the same target and create or reuse the helper's own token. A working classic `repo` token can be created before or after accepting the invitation; accepting it alone does not require a new token. Forking creates a separate repository and is not part of this app's helper setup.
 
 ### Where to create both tokens
 
@@ -39,13 +39,13 @@ If the helper has already accepted the invitation to `technorant/test`, that par
 
 Open **[Personal access tokens](https://github.com/settings/tokens)** while signed in to the correct account. To get there through GitHub's menus, use **Profile picture → Settings → Developer settings → Personal access tokens → Tokens (classic)**.
 
-If you see **“You don't have access to repository options”**, you are on a repository settings page, such as `github.com/technorant/test/settings`. That message is expected for a helper without admin access. Open the personal token settings link above instead. The helper does not need admin access, a new repository, or a fork to create its token.
+If you see **“You don't have access to repository options”**, you are on a repository settings page, such as `github.com/your-username/your-repository/settings`. That message is expected for a helper without admin access. Open the personal token settings link above instead. The helper does not need admin access, a new repository, or a fork to create its token.
 
 ### How to create the primary token
 
 If the main account already has a working classic token with **repo** selected, reuse it.
 
-1. Sign in to your **main GitHub account**—the account that owns the target repository, such as **technorant**.
+1. Sign in to your **main GitHub account**—the account that owns the target repository.
 2. Open **[Personal access tokens](https://github.com/settings/tokens)**.
 3. Click **Generate new token → Generate new token (classic)**.
 4. Enter a name and choose an expiration date.
@@ -65,15 +65,15 @@ Do this only for **Pair Extraordinaire, YOLO, or Galaxy Brain**. If the second a
 6. Click **Generate token** and copy the token.
 7. Paste it after **`HELPER_TOKEN=`** in your local `.env`, then save.
 
-Keep the main account's token in `GITHUB_TOKEN`. Keep `TARGET_REPO` set to the main account's repository. For `technorant/test`, your file should look like this:
+Keep the main account's token in `GITHUB_TOKEN`. Keep `TARGET_REPO` set to the main account's repository. Using placeholders, your file should look like this:
 
 ```dotenv
-GITHUB_TOKEN=TOKEN_FROM_TECHNORANT
-TARGET_REPO=technorant/test
+GITHUB_TOKEN=TOKEN_FROM_PRIMARY_ACCOUNT
+TARGET_REPO=your-username/your-repository
 HELPER_TOKEN=TOKEN_FROM_SECOND_ACCOUNT
 ```
 
-Replace the token placeholders locally with the tokens you copied. For Pull Shark or Quickdraw, leave `HELPER_TOKEN=` empty. Both tokens are used by the same local CLI; do not create a second repository for the helper.
+Replace the token placeholders locally with the tokens you copied, and replace the repository placeholder with your primary account's repository. For Pull Shark or Quickdraw, leave `HELPER_TOKEN=` empty. Both tokens are used by the same local CLI; do not create a second repository for the helper.
 
 For **YOLO and Galaxy Brain**, the helper must also accept the invitation to that same repository. If it already accepted, keep that access—no new invitation or replacement token is needed. Use the main account to manage invitations and enable Discussions/Q&A. Token creation itself always uses each account's personal settings.
 
@@ -118,7 +118,7 @@ python -m pip install -r requirements.txt
 python main.py doctor
 ```
 
-You should see `Connected as technorant to technorant/test` when using that account. If Python is called `python3` on your computer, replace `python` with `python3` in the commands.
+You should see `Connected as your-username to your-username/your-repository`, with your actual username and repository. If Python is called `python3` on your computer, replace `python` with `python3` in the commands.
 
 Already using the project's virtual environment on Windows? Replace `python` with `.venv\Scripts\python`. You do not need to install the app as a package.
 
@@ -160,7 +160,7 @@ On Windows, if you use the project's virtual environment:
 
 Use **Up/Down** to highlight an option and **Enter** to select it. You can also press its number. **Esc** goes back.
 
-1. Check that the dashboard shows your repository, such as **technorant/test**.
+1. Check that the dashboard shows your repository in **username/repository** format.
 2. Select **Unlock an achievement**.
 3. Select **Pull Shark** for the PR test, or choose another badge.
 4. Select **Base** to reach the first target using saved progress. To create exactly one new PR instead, select **Custom count** and enter **1**.
@@ -212,7 +212,7 @@ Use one message per line. Blank lines and lines beginning with `#` are ignored. 
 | --- | --- |
 | `{badge}` | `Pull Shark` or `Pair Extraordinaire` |
 | `{workflow}` | `pull-shark` or `pair-extraordinaire` |
-| `{repo}` | `technorant/test` |
+| `{repo}` | `your-username/your-repository` |
 | `{path}` | `.github-achievements/pull-shark.json` |
 
 For literal braces, write `{{` and `}}`. If an older `PR_TITLE`, `PR_BODY`, `COMMIT_MESSAGE`, `MERGE_TITLE`, or `MERGE_MESSAGE` setting is overriding a file, remove that message setting from `.env` or your shell. Keep your tokens. See [advanced message options](ADVANCED.md#message-options) for using a separate folder or an explicit override.
@@ -223,7 +223,7 @@ Use **Option 2** above and select the badge you want, or run its command below. 
 
 ### Pair Extraordinaire
 
-**Repository:** use the primary account's repository, such as `technorant/test`. The helper does not need its own repository, a fork, or a collaborator invitation for this badge. All GitHub writes use the primary token; the helper token is used to read the co-author's identity.
+**Repository:** use the primary account's repository. The helper does not need its own repository, a fork, or a collaborator invitation for this badge. All GitHub writes use the primary token; the helper token is used to read the co-author's identity.
 
 1. Keep the owner's classic **repo** token in `GITHUB_TOKEN` and that owner's repository in `TARGET_REPO`. Initialize the repository with a README and enable **Allow merge commits** as described in Step 2.
 2. Follow [How to create the helper token](#how-to-create-the-helper-token), signing in as the second account. Save its token in `HELPER_TOKEN`. For Pair alone, a classic token with no scopes selected is enough; an existing helper classic **repo** token also works.
@@ -253,7 +253,7 @@ This opens and closes an issue within five minutes. No helper is needed.
 
 ### YOLO
 
-**Repository:** both accounts use the primary account's repository, such as `technorant/test`. The primary opens the PR there and the helper merges it there. The helper does not create or fork a repository.
+**Repository:** both accounts use the primary account's repository. The primary opens the PR there and the helper merges it there. The helper does not create or fork a repository.
 
 1. Keep the owner's classic **repo** token in `GITHUB_TOKEN` and the owner's repository in `TARGET_REPO`. The repository needs an initial commit and **Allow merge commits** enabled.
 2. Follow [How to create the helper token](#how-to-create-the-helper-token). Create a classic token with **repo** selected while signed in as the second account, and save it in `HELPER_TOKEN`.
@@ -279,7 +279,7 @@ The helper merges the PR without a review. Existing branch rules still apply.
 
 This workflow needs **two different accounts**. The helper posts questions, your primary account answers, and the helper marks those answers as accepted.
 
-**Repository:** all questions and answers go into the primary account's repository, such as `technorant/test`. The helper accepts access to that exact repository. It does not need to create a repository or fork the invited repository. Keep `TARGET_REPO=technorant/test` when configuring either token.
+**Repository:** all questions and answers go into the primary account's repository. The helper accepts access to that exact repository. It does not need to create a repository or fork the invited repository. Keep `TARGET_REPO` set to that same repository when configuring either token.
 
 #### A. Save both tokens in `.env`
 
@@ -289,11 +289,11 @@ This workflow needs **two different accounts**. The helper posts questions, your
 
 ```dotenv
 GITHUB_TOKEN=YOUR_REPOSITORY_OWNER_TOKEN
-TARGET_REPO=technorant/test
+TARGET_REPO=your-username/your-repository
 HELPER_TOKEN=YOUR_SECOND_ACCOUNT_TOKEN
 ```
 
-Replace the placeholders with your tokens locally. Other users should replace `technorant/test` with a repository owned by their primary account. You do not select a repository when creating a classic token: the owner's account already owns the target, and the helper gains access by accepting the invitation in the next step.
+Replace the placeholders with your tokens locally, and replace `your-username/your-repository` with a repository owned by your primary account. You do not select a repository when creating a classic token: the owner's account already owns the target, and the helper gains access by accepting the invitation in the next step.
 
 #### B. Invite the helper and accept the invitation
 
@@ -408,7 +408,7 @@ If GitHub asks for a wait longer than five minutes, or retries are exhausted, th
 
 This message means a token lacks access to the requested resource or action. Creating a fork does not fix access to the original repository.
 
-1. Check `TARGET_REPO`. For `technorant/test`, `GITHUB_TOKEN` must belong to **technorant**, and `HELPER_TOKEN` must belong to a **different account**. Keep both tokens in the same local `.env`.
+1. Check `TARGET_REPO`. `GITHUB_TOKEN` must belong to **the target repository's owner**, and `HELPER_TOKEN` must belong to a **different account**. Keep both tokens in the same local `.env`.
 2. For **Galaxy Brain or YOLO**, use classic tokens with **repo** selected for both accounts as described in this guide. A helper fine-grained token may not support writing to another personal account's repository, even after accepting its invitation. If using a fine-grained **primary** token, it must select the target repository and have the [permissions for the chosen workflow](ADVANCED.md#use-a-token-limited-to-one-repository).
 3. For **Galaxy Brain or YOLO**, open the target's **Settings → Collaborators** as the owner. Confirm that the account which created `HELPER_TOKEN` has accepted its invitation to this exact repository. Access to a fork or to another repository is not sufficient. For **Pair Extraordinaire**, no invitation is required; a failure while checking commit authors concerns the primary token's repository access.
 4. For **Galaxy Brain**, enable Discussions and a category using **Question and Answer** format on the target repository itself.
