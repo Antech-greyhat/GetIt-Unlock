@@ -9,7 +9,7 @@ from urllib.parse import parse_qs, urlsplit
 from urllib.request import Request, build_opener
 
 from .api import NoRedirect
-from .catalog import ACHIEVEMENTS
+from ..core.catalog import ACHIEVEMENTS
 
 
 class ProfileParser(HTMLParser):

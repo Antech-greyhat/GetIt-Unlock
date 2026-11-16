@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from string import Formatter
 
-from .catalog import ACHIEVEMENTS
+from ..core.catalog import ACHIEVEMENTS
 
 
 PR_WORKFLOWS = {"pull-shark", "pair-extraordinaire", "yolo"}
@@ -15,7 +15,7 @@ MESSAGE_FILES = {
     "merge_title": "mergetitle.txt",
     "merge_message": "mergedescription.txt",
 }
-DEFAULT_MESSAGE_DIR = Path(__file__).resolve().parent / "message_files"
+DEFAULT_MESSAGE_DIR = Path(__file__).resolve().parent / "presets"
 MESSAGE_LABELS = {
     "pr_title": "PR title",
     "pr_body": "PR description",

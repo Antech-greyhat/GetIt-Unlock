@@ -5,12 +5,12 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from github_achievement.api import GitHubError
-from github_achievement.cleanup import cleanup_record, cleanup_tracked, delete_merged_branch
-from github_achievement.cli import build_parser, execute_run, main
-from github_achievement.config import Config
-from github_achievement.state import StateStore
-from github_achievement.workflows import WorkflowRunner
+from github_achievement.github.api import GitHubError
+from github_achievement.workflows.cleanup import cleanup_record, cleanup_tracked, delete_merged_branch
+from github_achievement.cli.commands import build_parser, execute_run, main
+from github_achievement.core.config import Config
+from github_achievement.core.state import StateStore
+from github_achievement.workflows.runner import WorkflowRunner
 from tests.test_workflows import FakeGitHub
 
 
@@ -106,7 +106,7 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(self.store.count("alice", "alice/lab", "pull-shark"), 2)
 
     def test_empty_cleanup_needs_no_network_or_credentials(self):
-        with patch.dict("os.environ", {}, clear=True), patch("github_achievement.cli.make_runner", side_effect=AssertionError("No network")), redirect_stdout(io.StringIO()):
+        with patch.dict("os.environ", {}, clear=True), patch("github_achievement.cli.commands.make_runner", side_effect=AssertionError("No network")), redirect_stdout(io.StringIO()):
             code = main(["cleanup", "--env-file", str(self.path / "absent.env"), "--state-dir", str(self.path / "empty")])
         self.assertEqual(code, 0)
 
@@ -115,7 +115,7 @@ class CleanupTests(unittest.TestCase):
         runner = Mock()
         runner.preflight.return_value = {"account": "alice"}
         runner.run_one.return_value = {"url": "https://github.com/alice/lab/pull/7", "cleanup": {"rate_limited": True}}
-        with patch("github_achievement.cli.make_runner", return_value=runner), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        with patch("github_achievement.cli.commands.make_runner", return_value=runner), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             with self.assertRaisesRegex(GitHubError, "Stopping"):
                 execute_run(args, self.config, self.path / "run")
         self.assertEqual(runner.run_one.call_count, 1)

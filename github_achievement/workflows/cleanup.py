@@ -2,7 +2,7 @@
 import re
 from urllib.parse import quote
 
-from .api import GitHubError
+from ..github.api import GitHubError
 
 
 def delete_merged_branch(client, repo, branch, expected_sha, *, execute=True):

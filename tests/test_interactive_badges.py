@@ -7,11 +7,11 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.error import URLError
 
-from github_achievement.badges import check_badges, fetch_profile
-from github_achievement.cli import main, run_wizard
-from github_achievement.config import Config
-from github_achievement.onboarding import create_repository, ensure_credentials, helper_credentials, save_config, setup
-from github_achievement.ui import Choice, Console, clean
+from github_achievement.github.badges import check_badges, fetch_profile
+from github_achievement.cli.commands import main, run_wizard
+from github_achievement.core.config import Config
+from github_achievement.cli.onboarding import create_repository, ensure_credentials, helper_credentials, save_config, setup
+from github_achievement.cli.ui import Choice, Console, clean
 from tests.test_api import FakeOpener
 
 
@@ -144,13 +144,13 @@ class OnboardingTests(unittest.TestCase):
     def test_read_only_connection_setup_cannot_create_repository(self):
         with patch("sys.stdin.isatty", return_value=True), patch("getpass.getpass", return_value="primary"), patch.object(
             Console, "ask", return_value="alice/lab"
-        ), patch("github_achievement.onboarding.setup", side_effect=AssertionError("Creation wizard must not run")):
+        ), patch("github_achievement.cli.onboarding.setup", side_effect=AssertionError("Creation wizard must not run")):
             config = ensure_credentials(Config(), self.path, allow_create=False)
         self.assertEqual(config.repo, "alice/lab")
         self.assertEqual(config.token, "primary")
 
     def test_repository_creation_initializes_files_and_selected_visibility(self):
-        with patch("github_achievement.onboarding.GitHubClient") as client, patch.object(Console, "ask", return_value="new-lab"), patch.object(
+        with patch("github_achievement.cli.onboarding.GitHubClient") as client, patch.object(Console, "ask", return_value="new-lab"), patch.object(
             Console, "choose", side_effect=["private", "create"]
         ):
             client.return_value.request.side_effect = [{"login": "alice"}, {
@@ -163,7 +163,7 @@ class OnboardingTests(unittest.TestCase):
         self.assertTrue(payload["auto_init"])
 
     def test_cancel_repository_creation_does_not_write(self):
-        with patch("github_achievement.onboarding.GitHubClient") as client, patch.object(Console, "ask", return_value="lab"), patch.object(
+        with patch("github_achievement.cli.onboarding.GitHubClient") as client, patch.object(Console, "ask", return_value="lab"), patch.object(
             Console, "choose", side_effect=["public", "back"]
         ):
             client.return_value.request.return_value = {"login": "alice"}
@@ -184,7 +184,7 @@ class OnboardingTests(unittest.TestCase):
         with patch("os.environ", {}), patch("sys.stdin.isatty", return_value=True), patch.object(
             Console, "choose", side_effect=["pair-extraordinaire", "base", "preview"]
         ), patch("getpass.getpass", side_effect=AssertionError("No secrets needed for preview")), patch(
-            "github_achievement.cli.make_runner", side_effect=AssertionError("No API calls in preview")
+            "github_achievement.cli.commands.make_runner", side_effect=AssertionError("No API calls in preview")
         ):
             self.assertEqual(run_wizard(self.path, self.path.parent / "state"), 0)
 
@@ -194,7 +194,7 @@ class MenuTests(unittest.TestCase):
         console = Console()
         console.terminal, console.color = True, False
         output = io.StringIO()
-        with patch("sys.stdin.isatty", return_value=True), patch("github_achievement.ui.read_key", side_effect=["down", "enter"]), redirect_stdout(output):
+        with patch("sys.stdin.isatty", return_value=True), patch("github_achievement.cli.ui.read_key", side_effect=["down", "enter"]), redirect_stdout(output):
             result = console.choose("Choose", [Choice("a", "One"), Choice("b", "Two")])
         self.assertEqual(result, "b")
         self.assertTrue(output.getvalue().endswith("\033[?25h"))
@@ -203,7 +203,7 @@ class MenuTests(unittest.TestCase):
         console = Console()
         console.terminal = True
         output = io.StringIO()
-        with patch("sys.stdin.isatty", return_value=True), patch("github_achievement.ui.read_key", side_effect=KeyboardInterrupt), redirect_stdout(output):
+        with patch("sys.stdin.isatty", return_value=True), patch("github_achievement.cli.ui.read_key", side_effect=KeyboardInterrupt), redirect_stdout(output):
             with self.assertRaises(KeyboardInterrupt):
                 console.choose("Choose", [Choice("a", "One")])
         self.assertTrue(output.getvalue().endswith("\033[?25h"))
@@ -215,14 +215,14 @@ class MenuTests(unittest.TestCase):
             self.assertEqual(console.choose("Choose", [Choice("a", "One"), Choice("b", "Two")]), "b")
 
     def test_no_color_and_remote_control_sequences(self):
-        with patch.dict("os.environ", {"NO_COLOR": "1"}), patch("github_achievement.ui.enable_terminal", return_value=True):
+        with patch.dict("os.environ", {"NO_COLOR": "1"}), patch("github_achievement.cli.ui.enable_terminal", return_value=True):
             self.assertEqual(Console().paint("test", "cyan"), "test")
         self.assertEqual(clean("name\033[2J\r\nnext"), "name  next")
 
     def test_verify_json_is_clean_and_pending_is_exit_three(self):
         report = {"account": "alice", "badges": {"quickdraw": "not_visible"}, "note": "pending"}
         output = io.StringIO()
-        with patch("github_achievement.cli.check_badges", return_value=report), redirect_stdout(output):
+        with patch("github_achievement.cli.commands.check_badges", return_value=report), redirect_stdout(output):
             code = main(["verify", "--account", "alice", "--achievement", "quickdraw", "--json"])
         self.assertEqual(code, 3)
         self.assertEqual(json.loads(output.getvalue()), report)

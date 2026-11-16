@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="76" viewBox="0 0 260 76" role="img" aria-labelledby="title desc">
+  <title id="title">Star the repository</title>
+  <desc id="desc">Support GetIt-Unlock by starring the repository on GitHub.</desc>
+  <rect x="1" y="1" width="258" height="74" rx="12" fill="#1b3025" stroke="#365342"/>
+  <path d="M34 21l5.2 10.5 11.6 1.7-8.4 8.2 2 11.6L34 47.5 23.6 53l2-11.6-8.4-8.2 11.6-1.7Z" fill="#87e6ad"/>
+  <g font-family="'Segoe UI', sans-serif">
+    <text x="68" y="34" fill="#f1f7f3" font-size="18" font-weight="600">Star the repository</text>
+    <text x="68" y="54" fill="#b1c4b9" font-size="12">Support the project</text>
+  </g>
+</svg>

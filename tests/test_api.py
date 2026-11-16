@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from email.utils import format_datetime
 from urllib.error import HTTPError, URLError
 
-from github_achievement.api import GitHubClient, GitHubError, NoRedirect, WriteLimiter
+from github_achievement.github.api import GitHubClient, GitHubError, NoRedirect, WriteLimiter
 
 
 class FakeOpener:
