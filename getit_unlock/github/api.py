@@ -8,7 +8,7 @@ from http.client import HTTPException
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from .. import __version__
+from .. import USER_AGENT
 
 
 class GitHubError(RuntimeError):
@@ -129,7 +129,7 @@ class GitHubClient:
                 "Accept": "application/vnd.github+json",
                 "Content-Type": "application/json",
                 "X-GitHub-Api-Version": "2022-11-28",
-                "User-Agent": f"github-achievement-python/{__version__}",
+                "User-Agent": USER_AGENT,
             })
             try:
                 with self.opener.open(request, timeout=self.timeout) as response:

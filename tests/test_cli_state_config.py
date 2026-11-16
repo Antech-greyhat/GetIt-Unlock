@@ -7,11 +7,11 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from github_achievement.core.catalog import target_for
-from github_achievement.cli.commands import build_parser, main
-from github_achievement.core.config import Config, read_env, validate_repo
-from github_achievement.core.state import RunLock, StateStore
-from github_achievement.workflows.runner import WorkflowRunner
+from getit_unlock.core.catalog import target_for
+from getit_unlock.cli.commands import build_parser, main
+from getit_unlock.core.config import Config, read_env, validate_repo
+from getit_unlock.core.state import RunLock, StateStore
+from getit_unlock.workflows.runner import WorkflowRunner
 from tests.test_workflows import FakeGitHub
 
 
@@ -88,7 +88,7 @@ class CLITests(unittest.TestCase):
         self.environment = patch.dict("os.environ", {}, clear=True)
         self.environment.start()
         self.addCleanup(self.environment.stop)
-        self.badges = patch("github_achievement.cli.commands.check_badges", return_value={
+        self.badges = patch("getit_unlock.cli.commands.check_badges", return_value={
             "account": "alice", "profile_url": "https://github.com/alice?tab=achievements",
             "badges": {"quickdraw": "not_visible"}, "note": "Not visible yet.",
         })
@@ -107,20 +107,20 @@ class CLITests(unittest.TestCase):
         self.assertEqual(len(json.loads(output)), 5)
 
     def test_default_preview_never_constructs_client_or_state(self):
-        with patch("github_achievement.cli.commands.make_runner", side_effect=AssertionError("No network allowed")):
+        with patch("getit_unlock.cli.commands.make_runner", side_effect=AssertionError("No network allowed")):
             code, output, _ = self.invoke("run", "pull-shark", "--repo", "alice/lab", "--tier", "base")
         self.assertEqual(code, 0)
         self.assertIn("Preview only", output)
         self.assertFalse((self.path / "state").exists())
 
     def test_missing_token_stops_before_network(self):
-        with patch("github_achievement.cli.commands.make_runner", side_effect=AssertionError("No network allowed")):
+        with patch("getit_unlock.cli.commands.make_runner", side_effect=AssertionError("No network allowed")):
             code, _, error = self.invoke("run", "quickdraw", "--repo", "alice/lab", "--execute")
         self.assertEqual(code, 1)
         self.assertIn("Set GITHUB_TOKEN", error)
 
     def test_dry_run_without_achievement_cannot_enter_setup_or_execute(self):
-        with patch("github_achievement.cli.commands.run_wizard", side_effect=AssertionError("Must not enter interactive setup")):
+        with patch("getit_unlock.cli.commands.run_wizard", side_effect=AssertionError("Must not enter interactive setup")):
             code, _, error = self.invoke("run", "--dry-run")
         self.assertEqual(code, 1)
         self.assertIn("Specify an achievement ID", error)
@@ -134,7 +134,7 @@ class CLITests(unittest.TestCase):
     def test_tier_resume_uses_authenticated_account_and_does_not_repeat_success(self):
         primary = FakeGitHub()
         with patch.dict("os.environ", {"GITHUB_TOKEN": "test-token"}), patch(
-            "github_achievement.cli.commands.make_runner", side_effect=lambda config: WorkflowRunner(config, primary)
+            "getit_unlock.cli.commands.make_runner", side_effect=lambda config: WorkflowRunner(config, primary)
         ):
             first = self.invoke("run", "quickdraw", "--repo", "alice/lab", "--tier", "base", "--execute")
             second = self.invoke("run", "quickdraw", "--repo", "alice/lab", "--tier", "base", "--execute")
@@ -146,7 +146,7 @@ class CLITests(unittest.TestCase):
     def test_doctor_is_read_only(self):
         primary = FakeGitHub()
         with patch.dict("os.environ", {"GITHUB_TOKEN": "test-token"}), patch(
-            "github_achievement.cli.commands.make_runner", side_effect=lambda config: WorkflowRunner(config, primary)
+            "getit_unlock.cli.commands.make_runner", side_effect=lambda config: WorkflowRunner(config, primary)
         ):
             code, output, error = self.invoke("doctor", "--repo", "alice/lab", "--workflow", "pull-shark", "--json")
         self.assertEqual(code, 0, error)
@@ -167,7 +167,7 @@ class CLITests(unittest.TestCase):
     def test_reset_without_expected_head_never_writes(self):
         primary = FakeGitHub()
         with patch.dict("os.environ", {"GITHUB_TOKEN": "test-token"}), patch(
-            "github_achievement.cli.commands.make_runner", side_effect=lambda config: WorkflowRunner(config, primary)
+            "getit_unlock.cli.commands.make_runner", side_effect=lambda config: WorkflowRunner(config, primary)
         ):
             code, _, error = self.invoke("reset-history", "--repo", "alice/lab", "--execute")
         self.assertEqual(code, 1)

@@ -6,12 +6,12 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from github_achievement.cli.commands import main, run_wizard
-from github_achievement.core.config import Config
-from github_achievement.messages.templates import (DEFAULT_MESSAGE_DIR, MESSAGE_FILES, PREVIEW_OPERATION,
+from getit_unlock.cli.commands import main, run_wizard
+from getit_unlock.core.config import Config
+from getit_unlock.messages.templates import (DEFAULT_MESSAGE_DIR, MESSAGE_FILES, PREVIEW_OPERATION,
                                          load_message_templates, render_messages, validate_message_templates)
-from github_achievement.cli.onboarding import save_config
-from github_achievement.cli.ui import Console
+from getit_unlock.cli.onboarding import save_config
+from getit_unlock.cli.ui import Console
 
 
 class MessageTests(unittest.TestCase):
@@ -89,7 +89,7 @@ class MessageCLITests(unittest.TestCase):
     def invoke(self, *args):
         output, error = io.StringIO(), io.StringIO()
         with redirect_stdout(output), redirect_stderr(error), patch(
-            "github_achievement.cli.commands.make_runner", side_effect=AssertionError("Offline test: no GitHub calls")
+            "getit_unlock.cli.commands.make_runner", side_effect=AssertionError("Offline test: no GitHub calls")
         ):
             code = main(["--env-file", str(self.env_file), "--state-dir", str(self.path / "state"), *args])
         return code, output.getvalue(), error.getvalue()
@@ -110,7 +110,7 @@ class MessageCLITests(unittest.TestCase):
         self.assertFalse((self.path / "state").exists())
 
     def test_invalid_template_stops_before_credential_setup(self):
-        with patch("github_achievement.cli.commands.ensure_credentials", side_effect=AssertionError("No setup")):
+        with patch("getit_unlock.cli.commands.ensure_credentials", side_effect=AssertionError("No setup")):
             code, _, error = self.invoke("run", "pull-shark", "--execute", "--merge-title", "Invalid {token}")
         self.assertEqual(code, 1)
         self.assertIn("MERGE_TITLE", error)
@@ -139,7 +139,7 @@ class MessageCLITests(unittest.TestCase):
         with patch("sys.stdin.isatty", return_value=True), patch.object(
             Console, "choose", side_effect=["pair-extraordinaire", "base", "execute"]
         ), patch.object(Console, "ask", side_effect=AssertionError("Messages must come from files")), patch(
-            "github_achievement.cli.commands.main", return_value=0
+            "getit_unlock.cli.commands.main", return_value=0
         ) as execute, redirect_stdout(io.StringIO()):
             self.assertEqual(run_wizard(self.env_file, self.path / "state"), 0)
         command = execute.call_args.args[0]
@@ -151,7 +151,7 @@ class MessageCLITests(unittest.TestCase):
         with patch("sys.stdin.isatty", return_value=True), patch.object(
             Console, "choose", side_effect=["pull-shark", "base", "preview"]
         ), patch.object(Console, "ask", side_effect=AssertionError("No message prompts")), patch(
-            "github_achievement.cli.commands.make_runner", side_effect=AssertionError("No network")
+            "getit_unlock.cli.commands.make_runner", side_effect=AssertionError("No network")
         ), redirect_stdout(io.StringIO()) as output:
             self.assertEqual(run_wizard(self.env_file, self.path / "state"), 0)
         self.assertIn("Message files:", output.getvalue())

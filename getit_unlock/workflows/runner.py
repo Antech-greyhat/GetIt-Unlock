@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from urllib.parse import quote, urlencode
 
+from .. import PROJECT_NAME
 from ..github.api import GitHubError
 from .cleanup import delete_merged_branch
 from ..messages.templates import PR_WORKFLOWS, render_messages, validate_message_templates
@@ -277,7 +278,7 @@ class WorkflowRunner:
         checkpoint(stage="open_issue")
         issue = self.primary.request("POST", f"{self.prefix}/issues", {
             "title": f"Quickdraw workflow ({operation_id[:8]})",
-            "body": f"Issue lifecycle exercise created by github-achievement-python.\nOperation: {operation_id}",
+            "body": f"Issue lifecycle exercise created by {PROJECT_NAME}.\nOperation: {operation_id}",
         })
         checkpoint(stage="close_issue", number=issue["number"], url=issue["html_url"])
         self.primary.request("PATCH", f"{self.prefix}/issues/{issue['number']}", {"state": "closed"})

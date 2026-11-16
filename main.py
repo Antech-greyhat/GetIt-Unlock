@@ -1,5 +1,5 @@
-"""Short launcher: python main.py [command]."""
-from github_achievement.cli import main
+"""GetIt-Unlock launcher: python main.py [command]."""
+from getit_unlock.cli import main
 
 
 if __name__ == "__main__":

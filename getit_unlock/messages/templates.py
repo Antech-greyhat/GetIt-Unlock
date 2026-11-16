@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from string import Formatter
 
+from .. import PROJECT_NAME
 from ..core.catalog import ACHIEVEMENTS
 
 
@@ -88,7 +89,7 @@ def _render_field(config, workflow, operation_id, field, template, coauthor):
         text += f" [{operation_id}]"
     else:
         if field in {"pr_body", "merge_message"}:
-            text += "\n\nAutomated workflow run by github-achievement-python."
+            text += f"\n\nAutomated workflow run by {PROJECT_NAME}."
         text += f"\n\nOperation: {operation_id}"
     if field == "commit_message" and workflow == "pair-extraordinaire" and coauthor:
         name, email = coauthor

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
-  <title id="title">GitHub Achievement Python</title>
-  <desc id="desc">Your next achievement, one workflow away. A Python toolkit with an interactive menu and command-line workflows.</desc>
+  <title id="title">GetIt-Unlock</title>
+  <desc id="desc">Your next achievement, one workflow away. GetIt-Unlock provides an interactive menu and command-line workflows.</desc>
   <defs>
     <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
       <path d="M32 0H0V32" fill="none" stroke="#22312c" stroke-width="1"/>
@@ -14,7 +14,7 @@
   <rect x="700" width="480" height="360" fill="url(#grid)"/>
   <path d="M20 0H1180" stroke="#87e6ad" stroke-width="4"/>
   <g font-family="'Segoe UI', sans-serif">
-    <text x="56" y="65" fill="#87e6ad" font-size="14" font-weight="700" letter-spacing="2.5">GITHUB ACHIEVEMENT PYTHON</text>
+    <text x="56" y="65" fill="#87e6ad" font-size="14" font-weight="700" letter-spacing="2.5">GetIt-Unlock</text>
     <text x="52" y="137" fill="#f1f7f3" font-size="47" font-weight="700" letter-spacing="-1.5">Your next achievement,</text>
     <text x="52" y="194" fill="#f1f7f3" font-size="47" font-weight="700" letter-spacing="-1.5">one workflow away.</text>
     <text x="56" y="242" fill="#b1c4b9" font-size="19">Set up your tokens. Pick a badge. Follow your progress.</text>

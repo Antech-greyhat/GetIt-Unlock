@@ -8,6 +8,8 @@ import threading
 import time
 from dataclasses import dataclass
 
+from .. import PROJECT_NAME, __version__
+
 
 def enable_terminal():
     if os.name == "nt" and sys.stdout.isatty():
@@ -95,9 +97,9 @@ class Console:
 
     def banner(self, repo="", completed=0, pending=0, configured=False):
         self.say()
-        self.say("    /\\     G I T H U B", "cyan")
-        self.say("   /++\\    A C H I E V E M E N T", "gold")
-        self.say("   \\++/    P Y T H O N   /   0.2", "muted")
+        self.say(f"    /\\     {PROJECT_NAME}", "cyan")
+        self.say("   /++\\    GitHub achievement workflows", "gold")
+        self.say(f"   \\++/    Python CLI / {__version__}", "muted")
         self.say()
         self.panel(repo or "Connect your repository", [
             f"Credentials: {'configured' if configured else 'setup needed'}   /   Completed: {completed}   /   To inspect: {pending}",
