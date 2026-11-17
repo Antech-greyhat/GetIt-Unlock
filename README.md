@@ -22,7 +22,7 @@ Run and verify six GitHub achievement workflows from an interactive menu or a co
 **Badge guides:** [Pull Shark](#pull-shark) · [Pair Extraordinaire](#pair-extraordinaire) · [Quickdraw](#quickdraw) · [YOLO](#yolo) · [Galaxy Brain](#galaxy-brain) · [Starstruck](#starstruck)
 
 > [!TIP]
-> **Start with `.env`, then follow the numbered steps.** If you have not downloaded the app, use [Get the app](#get-the-app) first. You need Python 3.11 or newer; no extra Python packages are required.
+> **Choose [how to run on your operating system](#run-on-your-operating-system), then follow the numbered steps.** If you have not downloaded the app, use [Get the app](#get-the-app) first. Both launchers need Python 3.11 or newer; no extra Python packages are required.
 
 ## Find your next step
 
@@ -35,7 +35,126 @@ Run and verify six GitHub achievement workflows from an interactive menu or a co
 | **05 · [Check progress](#5-check-progress-and-badges)** | See completed operations and check your public badges. |
 | **06 · [Clean up](#6-clean-up-leftover-branches)** | Preview and remove verified merged branches. |
 
-[Common fixes](#common-fixes) · [Rate limits](#rate-limits-let-the-app-wait) · [Advanced options](docs/advanced.md) · [Get the app](#get-the-app)
+[Run on your OS](#run-on-your-operating-system) · [Common fixes](#common-fixes) · [Rate limits](#rate-limits-let-the-app-wait) · [Advanced options](docs/advanced.md) · [Get the app](#get-the-app)
+
+---
+
+## Run on your operating system
+
+Run commands inside the downloaded project folder. Bash launches the same Python CLI, with the same commands, interactive menu, `.env` settings, and saved progress.
+
+| Operating system | Default launcher | Optional launcher |
+| --- | --- | --- |
+| Windows | `python main.py` in PowerShell or Command Prompt | `bash main.sh` in Git Bash or WSL |
+| Linux | `bash main.sh` | `python3 main.py` |
+| Android / Termux | `bash main.sh` | `python main.py` |
+| macOS | `bash main.sh` | `python3 main.py` |
+
+The badge examples below use `python main.py`. On Linux, Termux, or any Bash shell, replace that prefix with `bash main.sh` and keep every argument. For example, `python main.py run pull-shark --tier base --execute` becomes `bash main.sh run pull-shark --tier base --execute`.
+
+### Windows: Python by default
+
+Install [Python 3.11 or newer](https://www.python.org/downloads/windows/) and enable **Add Python to PATH** in the installer. Open PowerShell or Command Prompt in the project folder:
+
+```powershell
+python --version
+python main.py --help
+```
+
+After [saving your tokens in `.env`](#1-put-your-tokens-in-env), check the connection and start the menu:
+
+```powershell
+python main.py doctor
+python main.py
+```
+
+If Windows provides the `py` launcher instead of `python`, use `py -3 main.py` with the same arguments. A project virtual environment can also be used as `.venv\Scripts\python main.py`.
+
+**Optional Bash:** install [Git for Windows](https://git-scm.com/downloads/win), open **Git Bash** in the project folder, and use your Windows Python installation:
+
+```bash
+bash main.sh --help
+bash main.sh doctor
+bash main.sh
+```
+
+You can also use [WSL](https://learn.microsoft.com/windows/wsl/install). Inside your WSL distribution, install Bash and Linux Python 3.11+ and follow the Linux steps below.
+
+### Linux: Bash by default
+
+The launcher works across Linux distributions with **Bash and Python 3.11+** installed. It does not depend on a particular package manager. Git is needed only if you clone the app rather than download its ZIP.
+
+Use your distribution's package manager to install the tools:
+
+| Distribution family | Install command |
+| --- | --- |
+| Debian, Ubuntu, Mint, Kali | `sudo apt update` then `sudo apt install bash python3 git` |
+| Fedora, RHEL, Rocky, AlmaLinux | `sudo dnf install bash python3 git` |
+| Arch, Manjaro | `sudo pacman -Syu bash python git` |
+| openSUSE | `sudo zypper install bash python311 git` |
+| Alpine | `sudo apk add bash python3 git` |
+| Void | `sudo xbps-install -S bash python3 git` |
+
+On other distributions, install the equivalent Bash and Python packages. Run `python3 --version` (or `python3.11 --version` for openSUSE) to check the version. Older distribution releases may need a newer Python package; keep the system Python and select a separate 3.11+ installation using `GETIT_UNLOCK_PYTHON` below. If you are already root, omit `sudo`.
+
+On openSUSE, if Python is available only as `python3.11`, select it before running the launcher:
+
+```bash
+export GETIT_UNLOCK_PYTHON=python3.11
+```
+
+From the project folder, check the launcher:
+
+```bash
+bash main.sh --help
+```
+
+After [saving your tokens in `.env`](#1-put-your-tokens-in-env), check the connection and start the menu:
+
+```bash
+bash main.sh doctor
+bash main.sh
+```
+
+**Optional Python:** use `python3 main.py doctor` and `python3 main.py`, or the executable name of your Python 3.11+ installation. All workflow arguments work with either launcher. Using `bash main.sh` does not require `chmod` or an executable filesystem.
+
+### Android: Termux
+
+Install a current [Termux release](https://termux.dev/en/), then install the tools inside Termux:
+
+```bash
+pkg update
+pkg install bash python git
+git clone https://github.com/Antech-greyhat/GetIt-Unlock.git
+cd GetIt-Unlock
+bash main.sh --help
+```
+
+Keep the project in Termux's home directory. Follow [Step 1](#1-put-your-tokens-in-env) to create `.env` there, then run:
+
+```bash
+bash main.sh doctor
+bash main.sh
+```
+
+**Optional Python:** use `python main.py doctor` and `python main.py` in the same folder.
+
+### macOS
+
+Install Python 3.11+ from [python.org](https://www.python.org/downloads/macos/) or your package manager. Use the built-in Bash to run `bash main.sh doctor` and `bash main.sh` after configuring `.env`. You can also run `python3 main.py` directly.
+
+### How Bash finds Python
+
+`main.sh` tries a compatible project `.venv` first (`.venv/bin/python` or `.venv/Scripts/python.exe`), then `python3`, `python`, and the Windows `py -3` launcher. It skips interpreters older than 3.11 and reports an error if none are suitable.
+
+To select a particular interpreter, set one executable name or path in your Bash shell:
+
+```bash
+export GETIT_UNLOCK_PYTHON="/path/to/python3.11"
+bash main.sh --help
+```
+
+For Git Bash, a Windows path can be written as `/c/Users/YourName/path/to/python.exe`. Set this variable in the shell, rather than in `.env`. Both launchers read `.env` and save `.achievement-state` in the current working directory; use `--env-file` and `--state-dir` to choose other paths.
 
 ---
 
@@ -128,15 +247,23 @@ The accepted invitation grants repository access; the helper's token lets the ap
 
 For Pull Shark, Pair Extraordinaire, and YOLO, the target must have at least one commit. Add a README if it is empty. Under **Settings → General → Pull Requests**, enable **Allow merge commits**. Branch rules and required checks still apply when merging.
 
-Open a terminal **inside this project folder** and run:
+Open a terminal **inside this project folder** and run the connection check for your operating system.
+
+Windows (Python default):
 
 ```powershell
 python main.py doctor
 ```
 
+Linux / Termux (Bash default), or optional Bash on Windows:
+
+```bash
+bash main.sh doctor
+```
+
 You should see `Connected as your-username to your-username/your-repository`, with your actual account and target. Resolve any error using [Common fixes](#common-fixes) before running a workflow. `doctor` checks access without creating GitHub activity; each badge below also lists any specific setup it needs.
 
-If your computer uses `python3`, replace `python` with `python3` throughout this guide. On Windows, an existing project virtual environment can be used as `.venv\Scripts\python`. No package installation is needed to run the source.
+For direct Python on Linux, use `python3` instead of `python`. On Windows, an existing project virtual environment can be used as `.venv\Scripts\python`. No extra Python packages are needed to run the source.
 
 The module launcher is `python -m getit_unlock`; after installing the package, the equivalent command is `getit-unlock`.
 
@@ -504,6 +631,7 @@ Use these folders when changing the CLI, editing its messages, or looking for do
 | Path | What it contains |
 | --- | --- |
 | `main.py` | Launcher for `python main.py` commands |
+| `main.sh` | Bash launcher for Linux, Termux, macOS, and optional Windows Bash |
 | `getit_unlock/cli/` | Commands, account setup, and terminal menus |
 | `getit_unlock/core/` | Achievement definitions, configuration, and saved progress |
 | `getit_unlock/github/` | GitHub API client and public badge checks |

@@ -2,6 +2,8 @@
 
 For the shortest setup, use the numbered steps in [README.md](../README.md).
 
+See [running on your operating system](../README.md#run-on-your-operating-system) for Windows, Linux, Termux, and macOS setup. Windows uses `python main.py` by default; Linux and Termux use `bash main.sh`. All Python command examples here also work by replacing `python main.py` with `bash main.sh` and keeping the arguments.
+
 ## Use a token limited to one repository
 
 These steps configure the **primary account's `GITHUB_TOKEN`** for a repository it owns. For the helper account, follow the README's [two-account setup](../README.md#two-accounts-one-target-repository) and [helper token steps](../README.md#how-to-create-the-helper-token). Both accounts use the same `TARGET_REPO`; the helper does not need to create or fork a repository.
@@ -34,7 +36,7 @@ PowerShell:
 Remove-Item Env:GITHUB_TOKEN, Env:GH_TOKEN, Env:HELPER_TOKEN, Env:TARGET_REPO -ErrorAction SilentlyContinue
 ```
 
-macOS/Linux:
+Linux / Termux / macOS / Git Bash:
 
 ```bash
 unset GITHUB_TOKEN GH_TOKEN HELPER_TOKEN TARGET_REPO
@@ -147,7 +149,7 @@ python main.py verify --account YOUR_USERNAME --json
 python main.py --help
 ```
 
-`setup` can create an initialized repository or configure a helper. `doctor` only checks an existing repository. `python -m getit_unlock` and an installed `getit-unlock` command still work as alternatives to `python main.py`.
+`setup` can create an initialized repository or configure a helper. `doctor` only checks an existing repository. `bash main.sh`, `python -m getit_unlock`, and an installed `getit-unlock` command work as alternatives to `python main.py`.
 
 Public badge checks report visible, not visible, or unknown. They do not infer tier levels or distinguish a newly awarded badge from one you already had. Hidden badges, delayed awards and changed GitHub markup limit what can be confirmed. `--wait-for-badge 120` waits after a successful run; `--skip-badge-check` skips the public profile check. Neither setting changes contribution counts.
 
@@ -168,9 +170,9 @@ macOS/Linux:
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python main.py
+bash main.sh
 ```
 
 There are no third-party runtime packages. Optional `pip install -e .` uses setuptools as its build dependency, declared in `pyproject.toml`.
 
-Run the offline tests with `python -m unittest discover -s tests -v`. Tests simulate GitHub responses; they cannot prove a live badge award. CI is configured for Windows and Linux on Python 3.11 and 3.14.
+Run the offline tests with `python -m unittest discover -s tests -v`. Tests simulate GitHub responses; they cannot prove a live badge award. CI is configured for Windows and Linux on Python 3.11 and 3.14, including Bash launcher checks on both operating systems.
