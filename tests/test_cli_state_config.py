@@ -104,7 +104,7 @@ class CLITests(unittest.TestCase):
     def test_list_json_without_config_or_network(self):
         code, output, _ = self.invoke("list", "--json")
         self.assertEqual(code, 0)
-        self.assertEqual(len(json.loads(output)), 5)
+        self.assertEqual(len(json.loads(output)), 6)
 
     def test_default_preview_never_constructs_client_or_state(self):
         with patch("getit_unlock.cli.commands.make_runner", side_effect=AssertionError("No network allowed")):

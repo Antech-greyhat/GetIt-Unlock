@@ -4,10 +4,10 @@
 
 # GetIt-Unlock
 
-Run and verify five GitHub achievement workflows from an interactive menu or a command. The app creates the required PRs, issues, or discussions in a personal repository you own and saves its progress between runs.
+Run and verify six GitHub achievement workflows from an interactive menu or a command. The app creates PRs, issues, or discussions, tracks received stars in a personal repository you own, and saves its progress between runs.
 
 <p align="center">
-  <img src="docs/assets/banners/project-info.svg" alt="Python 3.11+ · Five badge workflows · No extra Python packages · MIT code license" width="1000">
+  <img src="docs/assets/banners/project-info.svg" alt="Python 3.11+ · Six badge workflows · No extra Python packages · MIT code license" width="1000">
 </p>
 
 <p align="center">
@@ -16,9 +16,10 @@ Run and verify five GitHub achievement workflows from an interactive menu or a c
   <a href="#quickdraw"><img src="docs/assets/badges/quickdraw.png" alt="Quickdraw guide" title="Quickdraw" width="88" height="88"></a>
   <a href="#yolo"><img src="docs/assets/badges/yolo.png" alt="YOLO guide" title="YOLO" width="88" height="88"></a>
   <a href="#galaxy-brain"><img src="docs/assets/badges/galaxy-brain.png" alt="Galaxy Brain guide" title="Galaxy Brain" width="88" height="88"></a>
+  <a href="#starstruck"><img src="docs/assets/badges/starstruck.png" alt="Starstruck guide" title="Starstruck" width="88" height="88"></a>
 </p>
 
-**Badge guides:** [Pull Shark](#pull-shark) · [Pair Extraordinaire](#pair-extraordinaire) · [Quickdraw](#quickdraw) · [YOLO](#yolo) · [Galaxy Brain](#galaxy-brain)
+**Badge guides:** [Pull Shark](#pull-shark) · [Pair Extraordinaire](#pair-extraordinaire) · [Quickdraw](#quickdraw) · [YOLO](#yolo) · [Galaxy Brain](#galaxy-brain) · [Starstruck](#starstruck)
 
 > [!TIP]
 > **Start with `.env`, then follow the numbered steps.** If you have not downloaded the app, use [Get the app](#get-the-app) first. You need Python 3.11 or newer; no extra Python packages are required.
@@ -59,7 +60,7 @@ Replace the placeholders locally after creating your token below. Save the file 
 
 Set `TARGET_REPO` to **your primary account's repository**, in `username/repository` format. Both tokens go in the same local `.env`; one copy of the CLI uses the appropriate account for each action. The helper needs no separate repository, fork, or CLI installation.
 
-If you need a target repository, sign in as your primary account, open [Create a repository](https://github.com/new), choose that account as the owner, enter a name, and select **Add a README file**. Put the resulting `owner/name` in `TARGET_REPO`. You can use this repository for all five workflows.
+If you need a target repository, sign in as your primary account, open [Create a repository](https://github.com/new), choose that account as the owner, enter a name, and select **Add a README file**. Put the resulting `owner/name` in `TARGET_REPO`. A public repository supports all six workflows.
 
 ### How to create the primary token
 
@@ -76,7 +77,7 @@ The menu path is **Profile picture → Settings → Developer settings → Perso
 
 ### How to create the helper token
 
-Create a helper token only for **Pair Extraordinaire, YOLO, or Galaxy Brain**. It must belong to a different GitHub account.
+Create a helper token for **Pair Extraordinaire, YOLO, or Galaxy Brain**, or an optional [Starstruck helper star](#starstruck). It must belong to a different GitHub account.
 
 1. Sign in as the **helper** and check its username under the profile picture.
 2. Open its **[personal token settings](https://github.com/settings/tokens)** and choose **Generate new token (classic)**.
@@ -93,7 +94,7 @@ Replace these placeholders locally. Keep the primary token in `GITHUB_TOKEN` and
 
 ### Which token does each badge need?
 
-The primary classic `repo` token works for all five workflows. The helper classic `repo` token works for all three helper workflows, with the repository access shown below.
+The primary classic `repo` token works for all six workflows. The helper classic `repo` token works for the helper actions below.
 
 | Badge | Helper token | Must the helper accept a repository invitation? |
 | --- | --- | --- |
@@ -102,6 +103,7 @@ The primary classic `repo` token works for all five workflows. The helper classi
 | [Pair Extraordinaire](#pair-extraordinaire) | Required | No |
 | [YOLO](#yolo) | Required | Yes |
 | [Galaxy Brain](#galaxy-brain) | Required | Yes |
+| [Starstruck](#starstruck) | Optional, to add one star | No |
 
 If the helper is only used for **Pair Extraordinaire** with default co-author settings, a classic token with no scopes selected is sufficient. A custom co-author email needs **user:email** access for verification; see [co-author email options](docs/advanced.md#co-author-email-options).
 
@@ -199,7 +201,7 @@ Other badges use the same menu: **Unlock an achievement → badge → level → 
 
 ### How levels and counts work
 
-`--tier` uses successful operations saved by this app for the **current account, repository, and selected workflow**. It runs only what remains for that target. `--count N` always requests N new operations; use either `--tier` or `--count`, not both.
+`--tier` uses successful operations saved by this app for the **current account, repository, and selected workflow**. It runs only what remains for that target. `--count N` always requests N new operations; use either `--tier` or `--count`, not both. Starstruck uses the repository's live received stars and does not accept `--count`.
 
 For example, with 16 saved Pull Shark successes, this command schedules **112 more PRs** to reach Silver at 128:
 
@@ -377,6 +379,35 @@ For another level, replace `--tier base` with its CLI target from the table. Ope
 
 ---
 
+### Starstruck
+
+<p>
+  <img src="docs/assets/badges/starstruck.png" alt="GitHub Starstruck achievement badge" width="120" height="120">
+</p>
+
+**Goal:** receive stars on a public repository you own. **Helper:** optional; each account can contribute one star.
+
+| Level | Total received stars | CLI target |
+| --- | ---: | --- |
+| Base (default) | 16 | `--tier base` |
+| Bronze (x2) | 128 | `--tier bronze` |
+| Silver (x3) | 512 | `--tier silver` |
+| Gold (x4) | 4,096 | `--tier gold` |
+
+Set `TARGET_REPO` to your public repository, then run:
+
+```powershell
+python main.py run starstruck --tier base --execute
+```
+
+The app reads live stars, reports how many remain, saves a snapshot, and checks badge visibility. Add `--wait-for-stars 120` to monitor for two minutes. To contribute one star with a different account's `HELPER_TOKEN`, add `--star-with-helper`; an existing star is kept and no invitation is needed. A classic `public_repo` token or fine-grained account **Starring: read/write** permission works. Use `--tier` instead of `--count`.
+
+**Starstruck is hard to automate because it needs stars from other users. Contributions that improve this automation are welcome.**
+
+[↑ Badge guides](#find-your-next-step)
+
+---
+
 ## 5. Check progress and badges
 
 ```powershell
@@ -384,7 +415,7 @@ python main.py status
 python main.py verify
 ```
 
-`status` shows this app's completed operations. `verify` checks whether badges are visible on your public profile; it does not read their tier. A verified PR, issue closure, or accepted answer confirms the workflow completed, while GitHub controls the badge award. Hidden or delayed badges may show **not visible yet**.
+`status` shows completed operations and Starstruck progress snapshots. `verify` checks whether badges are visible on your public profile; it does not read their tier. A verified PR, issue closure, or accepted answer confirms the workflow completed, while GitHub controls the badge award. Hidden or delayed badges may show **not visible yet**.
 
 To allow two minutes for a badge to appear, without creating more activity:
 

@@ -16,6 +16,7 @@ These steps configure the **primary account's `GITHUB_TOKEN`** for a repository 
 | Pull Shark, Pair Extraordinaire, YOLO | Contents: read/write; Pull requests: read/write |
 | Quickdraw | Issues: read/write |
 | Galaxy Brain | Discussions: read/write |
+| Starstruck tracking | Metadata: read; public repository |
 | Cleanup | Contents: read/write; Pull requests: read |
 | History reset | Contents: read/write; repository must allow the force update |
 
@@ -63,8 +64,11 @@ A custom email must belong to the helper account and be verified. Give the helpe
 | Galaxy Brain | 2 | 8 | 16 | 32 |
 | Quickdraw | 1 | — | — | — |
 | YOLO | 1 | — | — | — |
+| Starstruck | 16 | 128 | 512 | 4096 |
 
 These are community-reported thresholds, not guarantees of badge awards. Counts are scoped to the authenticated account, target repository and selected workflow. An operation may trigger other badges on GitHub, but the app counts it only under the selected workflow.
+
+Starstruck uses GitHub's live `stargazers_count`, including stars received before using this app. `--tier` selects a star threshold; `--count` is unsupported. Runs save `observed` snapshots, not successful contribution counts. `--wait-for-stars N` polls for up to 600 seconds; `--star-with-helper` adds at most one star using the different account in `HELPER_TOKEN`, verifies it, and skips an existing star. The helper needs no invitation: a classic `public_repo` token or a fine-grained token with account **Starring: read/write** works for the public target.
 
 Keep `.achievement-state/progress.sqlite3` between runs. Use `--state-dir PATH` to choose another location. A failed/interrupted operation is not automatically replayed. Inspect its recorded PR, issue, or discussion before starting a new operation: GitHub may have completed a write even if its response was lost. Cleanup updates branch-cleanup details without changing success counts.
 
@@ -98,7 +102,7 @@ For example, preview one co-authored PR with a custom title and commit message:
 python main.py run pair-extraordinaire --count 1 --pr-title "Record {badge} activity together" --commit-message "Save the co-authored activity record"
 ```
 
-Add `--execute` to run the previewed workflow. Command options override shell variables, which override `.env`; an empty value restores selection from the corresponding message file. Customizations do not change what files the workflow edits. Shared `.env` message settings are ignored for Quickdraw and Galaxy Brain; supplying PR message options directly for those badges is an error.
+Add `--execute` to run the previewed workflow. Command options override shell variables, which override `.env`; an empty value restores selection from the corresponding message file. Customizations do not change what files the workflow edits. Shared `.env` message settings are ignored for Quickdraw, Galaxy Brain, and Starstruck; supplying PR message options directly for those badges is an error.
 
 Templates accept only `{badge}`, `{workflow}`, `{repo}`, and `{path}`. Use `{{` and `}}` for literal braces and `\n` for newlines in descriptions and commit messages. Template expressions do not execute Python or shell code. The full journal operation ID is appended to every field, including across separate runs. The sample ID shown in a preview is replaced at execution.
 

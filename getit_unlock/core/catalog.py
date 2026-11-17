@@ -28,6 +28,11 @@ ACHIEVEMENTS = {
         Achievement("galaxy-brain", "Galaxy Brain", (2, 8, 16, 32),
                     "Accepted answers in GitHub Discussions",
                     ("Helper opens a question in an answerable category", "Primary account posts an answer", "Helper marks that answer as accepted"), True),
+        Achievement("starstruck", "Starstruck", (16, 128, 512, 4096),
+                    "Receive stars on a public repository you own",
+                    ("Read the repository's current star count from GitHub",
+                     "Compare received stars with the selected tier and save a progress snapshot",
+                     "Check whether Starstruck is visible on your public profile")),
     )
 }
 

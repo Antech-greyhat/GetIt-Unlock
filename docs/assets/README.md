@@ -2,7 +2,7 @@
 
 `banners/readme-banner.svg`, `banners/project-info.svg`, `banners/star-repo.svg`, and `banners/fork-repo.svg` are original project artwork.
 
-The achievement images in `badges/` are GitHub artwork, downloaded from GitHub's public asset host on 2026-11-16. They are included locally so the README can display them without a third-party image service. The project's MIT license does not grant rights to GitHub's artwork or trademarks.
+The achievement images in `badges/` are GitHub artwork, downloaded from GitHub's public asset host on 2026-11-16 (Starstruck added 2026-11-17). They are included locally so the README can display them without a third-party image service. The project's MIT license does not grant rights to GitHub's artwork or trademarks.
 
 | Local file | Source |
 | --- | --- |
@@ -11,3 +11,4 @@ The achievement images in `badges/` are GitHub artwork, downloaded from GitHub's
 | `badges/quickdraw.png` | [Quickdraw](https://github.githubassets.com/images/modules/profile/achievements/quickdraw-default.png) |
 | `badges/yolo.png` | [YOLO](https://github.githubassets.com/images/modules/profile/achievements/yolo-default.png) |
 | `badges/galaxy-brain.png` | [Galaxy Brain](https://github.githubassets.com/images/modules/profile/achievements/galaxy-brain-default.png) |
+| `badges/starstruck.png` | [Starstruck](https://github.githubassets.com/images/modules/profile/achievements/starstruck-default.png) |

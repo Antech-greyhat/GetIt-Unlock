@@ -14,7 +14,7 @@ from ..core.config import Config
 from ..core.state import RunLock, StateStore
 from ..workflows.runner import WorkflowRunner
 from ..github.badges import check_badges
-from .onboarding import ensure_credentials, setup
+from .onboarding import ensure_credentials, helper_credentials, save_config, setup
 from .ui import Choice, Console
 from ..workflows.cleanup import cleanup_tracked
 from ..messages.templates import (MESSAGE_FILES, MESSAGE_LABELS, PR_WORKFLOWS, PREVIEW_OPERATION,
@@ -91,7 +91,7 @@ def build_parser():
     run.add_argument("achievement", choices=ACHIEVEMENTS, nargs="?", help="Omit to choose interactively")
     amount = run.add_mutually_exclusive_group()
     amount.add_argument("--count", type=positive_int, help="Number of new operations (default: 1)")
-    amount.add_argument("--tier", choices=TIERS, help="Reach this threshold using locally recorded successes")
+    amount.add_argument("--tier", choices=TIERS, help="Reach this threshold using locally recorded successes (live received stars for Starstruck)")
     mode = run.add_mutually_exclusive_group()
     mode.add_argument("--execute", action="store_true", help="Perform the displayed GitHub writes")
     mode.add_argument("--dry-run", action="store_true", help="Preview without credentials or network (the default)")
@@ -104,6 +104,10 @@ def build_parser():
                          help=f"{MESSAGE_LABELS[field]} template; overrides {field.upper()} in .env (PR workflows only)")
     run.add_argument("--wait-for-badge", type=badge_wait, default=0, help="After successful operations, poll for public badge visibility (max 600 seconds)")
     run.add_argument("--skip-badge-check", action="store_true", help="Only verify API operations; skip the public profile check")
+    run.add_argument("--wait-for-stars", type=badge_wait, default=0,
+                     help="Starstruck: poll received stars for up to this many seconds (max 600)")
+    run.add_argument("--star-with-helper", action="store_true",
+                     help="Starstruck: use HELPER_TOKEN to add one star if the helper has not already starred")
     reset = commands["reset-history"]
     reset.add_argument("--execute", action="store_true")
     reset.add_argument("--expected-head", help="Full SHA from a fresh reset-history preview")
@@ -197,7 +201,10 @@ def show_plan(args, config):
     console = Console()
     achievement = ACHIEVEMENTS[args.achievement]
     config.validate()
-    if args.tier:
+    if args.achievement == "starstruck":
+        tier = args.tier or "base"
+        amount = f"check live received stars against {target_for('starstruck', tier)} ({tier})"
+    elif args.tier:
         target = target_for(args.achievement, args.tier)
         amount = f"up to {target} total locally recorded successes ({args.tier}); account checked at execution"
     else:
@@ -205,6 +212,12 @@ def show_plan(args, config):
     console.panel(f"{achievement.name.upper()} / {config.repo}", [f"Plan: {amount}"])
     for number, step in enumerate(achievement.steps, 1):
         console.say(f"  {number:02}. {step}")
+    if args.achievement == "starstruck":
+        console.say("Stars must come from other users; each account can contribute one star to this repository.", "muted")
+        if args.star_with_helper:
+            console.say("Use the verified helper to star this repository once; an existing star is kept.", "gold")
+        if args.wait_for_stars:
+            console.say(f"Poll received stars for up to {args.wait_for_stars} seconds.", "muted")
     if achievement.helper:
         console.say("Requires a token from a different helper account.", "gold")
     if args.achievement == "pair-extraordinaire":
@@ -255,11 +268,17 @@ def execute_run(args, config, state_dir):
     runner = make_runner(config)
     with console.activity("Checking workflow prerequisites") as activity:
         runner.report = activity.update
-        info = runner.preflight(args.achievement)
+        info = (runner.preflight(args.achievement, star_with_helper=args.star_with_helper)
+                if args.achievement == "starstruck" else runner.preflight(args.achievement))
     with RunLock(state_dir), StateStore(state_dir / "progress.sqlite3") as store:
-        completed = store.count(info["account"], config.repo, args.achievement)
-        count = max(0, target_for(args.achievement, args.tier) - completed) if args.tier else (args.count or 1)
-        print(f"\nAuthenticated as {info['account']}. {completed} recorded successes; {count} operation(s) to run.")
+        starstruck = args.achievement == "starstruck"
+        if starstruck:
+            count = 1
+            print(f"\nAuthenticated as {info['account']}. {info['stars']} live received stars; checking progress.")
+        else:
+            completed = store.count(info["account"], config.repo, args.achievement)
+            count = max(0, target_for(args.achievement, args.tier) - completed) if args.tier else (args.count or 1)
+            print(f"\nAuthenticated as {info['account']}. {completed} recorded successes; {count} operation(s) to run.")
         if info.get("helper"):
             console.say(f"Helper verified: {info['helper']}", "green")
         console.progress(0, count)
@@ -269,14 +288,24 @@ def execute_run(args, config, state_dir):
                     time.sleep(args.interval)
             with console.activity(f"Operation {index + 1} of {count}") as activity:
                 runner.report = activity.update
-                result = runner.run_one(args.achievement, store)
-            console.say(f"  VERIFIED  {result['url']}", "green")
+                result = (runner.run_one(args.achievement, store, star_tier=args.tier or "base",
+                                         star_wait=args.wait_for_stars, star_with_helper=args.star_with_helper)
+                          if starstruck else runner.run_one(args.achievement, store))
+            if starstruck:
+                console.say(f"  {result['stars']}/{result['target']} received stars ({result['tier']}); "
+                            f"{result['remaining']} more needed.", "green" if result["target_met"] else "gold")
+                if result["helper_star"] != "not_requested":
+                    console.say("Helper star: " + result["helper_star"].replace("_", " "))
+                console.say(f"  Repository: {result['url']}", "cyan")
+            else:
+                console.say(f"  VERIFIED  {result['url']}", "green")
             console.progress(index + 1, count)
             if result.get("warning"):
                 print(result["warning"], file=sys.stderr)
             if result.get("cleanup", {}).get("rate_limited"):
                 raise GitHubError("The completed operation was saved. Stopping because cleanup hit a rate limit; retry cleanup after GitHub's wait time.")
-        console.say("Workflow results verified and saved.", "green")
+        console.say("Star progress snapshot saved; GitHub decides badge awards." if starstruck
+                    else "Workflow results verified and saved.", "green")
     if not args.skip_badge_check:
         with console.activity("Checking whether GitHub displays the badge") as activity:
             result = check_badges(info["account"], [args.achievement], wait=args.wait_for_badge, report=activity.update)
@@ -308,15 +337,19 @@ def run_wizard(env_file, state_dir, repo=None):
         raise ValueError("Choose an achievement ID for scripted runs, or open the interactive menu in a terminal.")
     console = Console()
     workflow = console.choose("01 / Choose your achievement", [
-        Choice(a.slug, a.name, "Helper account" if a.helper else "Solo workflow")
+        Choice(a.slug, a.name, "Received stars" if a.slug == "starstruck" else
+               ("Helper account" if a.helper else "Solo workflow"))
         for a in ACHIEVEMENTS.values()
     ] + [Choice("back", "Back")])
     if workflow == "back":
         return 0
     achievement = ACHIEVEMENTS[workflow]
-    choices = [Choice(tier, tier.title(), f"{achievement.thresholds[index]} total recorded successes")
+    choices = [Choice(tier, tier.title(), f"{achievement.thresholds[index]} "
+                      + ("received stars" if workflow == "starstruck" else "total recorded successes"))
                for tier, index in TIERS.items() if index < len(achievement.thresholds)]
-    target = console.choose("02 / Choose your target", choices + [Choice("custom", "Custom count", "New operations"), Choice("back", "Back")])
+    if workflow != "starstruck":
+        choices.append(Choice("custom", "Custom count", "New operations"))
+    target = console.choose("02 / Choose your target", choices + [Choice("back", "Back")])
     if target == "back":
         return 0
     amount = ["--tier", target]
@@ -325,15 +358,26 @@ def run_wizard(env_file, state_dir, repo=None):
             if not value.isdigit() or int(value) < 1:
                 raise ValueError("Enter a positive whole number.")
         amount = ["--count", console.ask("New operations", "1", validator=validate_count)]
+    if workflow == "starstruck":
+        star_action = console.choose("Starstruck automation", [
+            Choice("track", "Track received stars", "Read current progress and check the badge"),
+            Choice("helper", "Add a helper star and track", "A different account contributes one star"),
+            Choice("back", "Back"),
+        ])
+        if star_action == "back":
+            return 0
+        if star_action == "helper":
+            amount.append("--star-with-helper")
     config = Config.load(env_file, repo=repo)
     if not config.repo:
-        config = setup(config, env_file, workflow)
+        config = setup(config, env_file, None if workflow == "starstruck" else workflow)
     common = ["--env-file", str(env_file), "--state-dir", str(state_dir), "--repo", config.repo]
     command = common + ["run", workflow, *amount]
     preview = build_parser().parse_args(command)
     show_plan(preview, config)
     action = console.choose("03 / Ready when you are", [
-        Choice("execute", "Run this workflow", "Use the predefined messages and verify the workflow"),
+        Choice("execute", "Run this workflow", "Check received stars and badge visibility" if workflow == "starstruck"
+               else "Use the predefined messages and verify the workflow"),
         Choice("preview", "Keep as preview", "No GitHub changes"),
         Choice("back", "Back"),
     ])
@@ -358,7 +402,7 @@ def interactive(env_file, state_dir, repo):
             with StateStore(state_dir / "progress.sqlite3") as store:
                 summary = store.summary(repo=config.repo)
         completed = sum(row["count"] for row in summary if row["status"] == "completed")
-        pending = sum(row["count"] for row in summary if row["status"] != "completed")
+        pending = sum(row["count"] for row in summary if row["status"] not in {"completed", "observed"})
         console.banner(config.repo, completed, pending, bool(config.token))
         choice = console.choose("YOUR NEXT MOVE", [
             Choice("run", "Unlock an achievement", "Choose a badge and target tier"),
@@ -391,6 +435,7 @@ def interactive(env_file, state_dir, repo):
                 Choice("pair-extraordinaire", "Pair Extraordinaire helper", "Configure or replace its token"),
                 Choice("yolo", "YOLO helper", "Collaborator token"),
                 Choice("galaxy-brain", "Galaxy Brain helper", "Collaborator token"),
+                Choice("starstruck", "Starstruck helper", "Optional token to contribute one star"),
                 Choice("back", "Back"),
             ])
             if section != "back":
@@ -433,15 +478,22 @@ def main(argv=None):
             print(json.dumps(info, indent=2) if args.json else
                   f"Connected as {info['account']} to {info['repo']}. Default branch: {info['default_branch']}.")
             if not args.json:
+                if args.workflow == "starstruck":
+                    print(f"Received stars: {info['stars']}.")
                 print("Read-only checks passed. Branch rules and exact write permissions are enforced by GitHub when executing.")
         elif args.command == "run":
             if args.achievement is None:
                 if (args.execute or args.dry_run or args.count is not None or args.tier
                         or args.coauthor_name or args.coauthor_email or args.category_id
                         or args.wait_for_badge or args.skip_badge_check or args.interval != 10
+                        or args.wait_for_stars or args.star_with_helper
                         or any(getattr(args, field) is not None for field in MESSAGE_FILES)):
                     raise ValueError("Specify an achievement ID when using run options; use plain run for the interactive chooser.")
                 return run_wizard(env_file, state_dir, repo)
+            if args.achievement == "starstruck" and args.count is not None:
+                raise ValueError("Starstruck uses live received stars. Choose --tier instead of --count.")
+            if args.achievement != "starstruck" and (args.wait_for_stars or args.star_with_helper):
+                raise ValueError("--wait-for-stars and --star-with-helper apply only to Starstruck.")
             overrides = {key: getattr(args, arg) for key, arg in (
                 ("coauthor_name", "coauthor_name"), ("coauthor_email", "coauthor_email"), ("category_id", "category_id")
             ) if getattr(args, arg) is not None}
@@ -455,6 +507,14 @@ def main(argv=None):
                 validate_message_templates(config, args.achievement)
             if args.execute:
                 config = ensure_credentials(config, env_file, args.achievement)
+                if args.star_with_helper:
+                    if sys.stdin.isatty():
+                        updated = helper_credentials(config, "starstruck", Console(), required=True)
+                        if updated != config:
+                            save_config(updated, env_file)
+                        config = updated
+                    if not config.helper_token:
+                        raise ValueError("--star-with-helper requires HELPER_TOKEN for a different GitHub account.")
             execute_run(args, config, state_dir)
         elif args.command == "reset-history":
             reset_history(args, config, state_dir)
