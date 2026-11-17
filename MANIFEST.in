@@ -1,6 +1,7 @@
 include .env.example
 include requirements.txt
 include main.py
+include main.sh
 recursive-include docs *.md *.svg *.png
 recursive-include tests *.py
 recursive-include getit_unlock/messages/presets *.txt
