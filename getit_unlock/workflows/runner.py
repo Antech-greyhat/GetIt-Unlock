@@ -5,6 +5,7 @@ from datetime import datetime
 from urllib.parse import quote, urlencode
 
 from .. import PROJECT_NAME
+from ..core.catalog import target_for
 from ..github.api import GitHubError
 from .cleanup import delete_merged_branch
 from ..messages.templates import PR_WORKFLOWS, render_messages, validate_message_templates
@@ -40,10 +41,11 @@ VERIFY_ANSWER = """query VerifyAnswer($id: ID!) {
 
 
 class WorkflowRunner:
-    def __init__(self, config, primary, helper=None, *, report=None, sleep=time.sleep):
+    def __init__(self, config, primary, helper=None, *, report=None, sleep=time.sleep, clock=time.monotonic):
         self.config, self.primary, self.helper = config, primary, helper
         self.report = report or (lambda message: None)
         self.sleep = sleep
+        self.clock = clock
         self.prefix = f"/repos/{config.repo}"
         self.user = None
         self.repository = None
@@ -54,8 +56,10 @@ class WorkflowRunner:
         self.coauthor_email = ""
         self.message_templates = None
 
-    def preflight(self, workflow=None):
+    def preflight(self, workflow=None, *, star_with_helper=False):
         self.config.validate(workflow, credentials=True)
+        if star_with_helper and workflow != "starstruck":
+            raise ValueError("Helper starring applies only to Starstruck.")
         if workflow in PR_WORKFLOWS:
             self.message_templates = validate_message_templates(self.config, workflow)
         self.report("Checking primary account and repository access")
@@ -66,8 +70,10 @@ class WorkflowRunner:
             raise ValueError("The target must be a personal repository owned by the primary token's account.")
         if self.repository.get("archived") or self.repository.get("disabled"):
             raise ValueError("The target repository is archived or disabled.")
-        if not self.repository.get("permissions", {}).get("push"):
+        if workflow != "starstruck" and not self.repository.get("permissions", {}).get("push"):
             raise ValueError("The primary account needs write access to the repository.")
+        if workflow == "starstruck" and self.repository.get("private"):
+            raise ValueError("Starstruck needs a public repository owned by the primary account.")
         if workflow in {"pull-shark", "pair-extraordinaire", "yolo", "reset-history"}:
             if not self.repository.get("default_branch"):
                 raise ValueError("Initialize the repository with a commit before running this workflow.")
@@ -77,7 +83,7 @@ class WorkflowRunner:
                 raise ValueError("Enable merge commits for this repository; this workflow preserves commit authorship.")
         if workflow == "quickdraw" and not self.repository.get("has_issues"):
             raise ValueError("Enable Issues in the target repository's settings.")
-        if workflow in {"pair-extraordinaire", "yolo", "galaxy-brain"}:
+        if workflow in {"pair-extraordinaire", "yolo", "galaxy-brain"} or star_with_helper:
             if self.helper is None:
                 raise ValueError("A helper client is required.")
             self.report("Verifying the helper account")
@@ -88,7 +94,7 @@ class WorkflowRunner:
                 helper_repo = self.helper.request("GET", self.prefix)
                 if not helper_repo.get("permissions", {}).get("push"):
                     raise ValueError("The helper account needs an accepted collaborator invitation and a classic PAT with repo scope.")
-            else:
+            elif workflow == "pair-extraordinaire":
                 self.resolve_coauthor()
                 validate_message_templates(self.config, workflow, templates=self.message_templates,
                                            coauthor=(self.coauthor_name, self.coauthor_email))
@@ -96,12 +102,22 @@ class WorkflowRunner:
             if not self.repository.get("has_discussions"):
                 raise ValueError("Enable Discussions and an answerable category (such as Q&A) in repository settings.")
             self.find_category()
-        return {"account": self.user["login"], "repo": self.repository["full_name"],
+        info = {"account": self.user["login"], "repo": self.repository["full_name"],
                 "default_branch": self.repository.get("default_branch"),
                 "issues": self.repository.get("has_issues", False),
                 "discussions": self.repository.get("has_discussions", False),
                 "private": self.repository.get("private", False),
                 "helper": self.helper_user["login"] if self.helper_user else None}
+        if workflow == "starstruck":
+            info["stars"] = self.star_count(self.repository)
+        return info
+
+    @staticmethod
+    def star_count(repository):
+        count = repository.get("stargazers_count")
+        if type(count) is not int or count < 0:
+            raise GitHubError("GitHub returned an invalid repository star count.")
+        return count
 
     def resolve_coauthor(self):
         user = self.helper_user
@@ -191,9 +207,15 @@ class WorkflowRunner:
             cursor = page["endCursor"]
         raise ValueError("No matching answerable discussion category. Enable Q&A or check DISCUSSION_CATEGORY_ID.")
 
-    def run_one(self, workflow, store):
+    def run_one(self, workflow, store, *, star_tier="base", star_wait=0, star_with_helper=False):
         if self.user is None:
             raise ValueError("Run preflight before executing a workflow.")
+        if workflow == "starstruck":
+            target_for(workflow, star_tier)
+            if not 0 <= star_wait <= 600:
+                raise ValueError("Star wait must be between 0 and 600 seconds.")
+            if star_with_helper and self.helper_user is None:
+                raise ValueError("Verify a different helper account in preflight before starring.")
         operation_id = store.start(self.user["login"], self.config.repo, workflow)
 
         def checkpoint(**detail):
@@ -206,11 +228,14 @@ class WorkflowRunner:
                 result = self.quickdraw(operation_id, checkpoint)
             elif workflow == "galaxy-brain":
                 result = self.galaxy_brain(operation_id, checkpoint)
+            elif workflow == "starstruck":
+                result = self.starstruck(checkpoint, tier=star_tier, wait=star_wait,
+                                         star_with_helper=star_with_helper)
             else:
                 message_index = store.attempt_count(self.user["login"], self.config.repo, workflow) - 1
                 checkpoint(message_index=message_index + 1)
                 result = self.pull_request(workflow, operation_id, checkpoint, message_index=message_index)
-            store.finish(operation_id, **result)
+            store.finish(operation_id, "observed" if workflow == "starstruck" else "completed", **result)
             return result
         except KeyboardInterrupt:
             store.finish(operation_id, "interrupted", error="Interrupted; inspect remote resources before starting another operation.")
@@ -218,6 +243,39 @@ class WorkflowRunner:
         except Exception as exc:
             store.finish(operation_id, "failed", error=self.config.redact(str(exc)))
             raise
+
+    def starstruck(self, checkpoint, *, tier="base", wait=0, star_with_helper=False):
+        target = target_for("starstruck", tier)
+        url = f"https://github.com/{self.config.repo}"
+        checkpoint(stage="checking_stars", url=url, tier=tier, target=target)
+        helper_star = "not_requested"
+        if star_with_helper:
+            path = f"/user/starred/{self.config.repo}"
+            try:
+                self.helper.request("GET", path)
+                helper_star = "already_starred"
+            except GitHubError as exc:
+                if exc.status != 404:
+                    raise
+                checkpoint(stage="starring_repository", helper=self.helper_user["login"])
+                self.helper.request("PUT", path)
+                checkpoint(stage="verifying_helper_star")
+                self.helper.request("GET", path)
+                helper_star = "added"
+            checkpoint(helper=self.helper_user["login"], helper_star=helper_star)
+        deadline = self.clock() + wait
+        while True:
+            repository = self.primary.request("GET", self.prefix)
+            stars = self.star_count(repository)
+            remaining = max(0, target - stars)
+            result = {"url": url, "stars": stars, "tier": tier, "target": target,
+                      "remaining": remaining, "target_met": remaining == 0,
+                      "helper_star": helper_star}
+            checkpoint(stage="stars_observed", **result)
+            if remaining == 0 or self.clock() >= deadline:
+                return result
+            self.report(f"{stars}/{target} stars; waiting for {remaining} more")
+            self.sleep(min(15, max(0, deadline - self.clock())))
 
     def pull_request(self, workflow, operation_id, checkpoint, *, message_index=0):
         messages = render_messages(self.config, workflow, operation_id,

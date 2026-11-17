@@ -50,13 +50,21 @@ def secret(label, existing=""):
         print("  Enter a token without whitespace; input stays hidden.")
 
 
-def helper_credentials(config, workflow, console, *, edit=False):
-    if workflow and ACHIEVEMENTS[workflow].helper and (edit or not config.helper_token):
+def helper_credentials(config, workflow, console, *, edit=False, required=False):
+    needs_helper = workflow and (ACHIEVEMENTS[workflow].helper
+                                or (workflow == "starstruck" and (edit or required)))
+    if needs_helper and (edit or not config.helper_token):
         if workflow == "pair-extraordinaire":
             console.panel("PAIR EXTRAORDINAIRE / connect your co-author", [
                 "Use a token from a different GitHub account.",
                 "We read its identity and use its GitHub noreply email for co-authorship.",
                 "This helper only needs authenticated profile access; it does not merge or write to your repo.",
+            ], "gold")
+        elif workflow == "starstruck":
+            console.panel("STARSTRUCK / optional helper star", [
+                "Use a token from a different GitHub account to contribute one star.",
+                "A classic public_repo token works; a fine-grained token needs account Starring: read/write.",
+                "No collaborator invitation is needed for this public repository.",
             ], "gold")
         else:
             console.panel("HELPER ACCOUNT", [
@@ -121,7 +129,7 @@ def ensure_credentials(config, path, workflow=None, *, allow_create=True):
         return config
     if not config.repo or not config.token:
         if allow_create:
-            return setup(config, path, workflow)
+            return setup(config, path, None if workflow == "starstruck" else workflow)
         console = Console()
         console.say("Connection checks use an existing repository. Use setup to create one.", "muted")
         config = replace(config, token=config.token or secret("Primary GitHub token"),
