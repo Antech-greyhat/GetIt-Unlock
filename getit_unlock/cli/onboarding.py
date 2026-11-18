@@ -43,11 +43,19 @@ def save_config(config, path):
 
 def secret(label, existing=""):
     suffix = " [Enter keeps configured token]" if existing else ""
+    console = Console()
     while True:
-        value = getpass.getpass(f"  {label}{suffix}: ").strip() or existing
+        question = console.prompt(label + suffix)
+        if console.rich.legacy_windows:
+            prompt = question.plain
+        else:
+            with console.rich.capture() as capture:
+                console.rich.print(question, end="")
+            prompt = capture.get()
+        value = getpass.getpass(prompt).strip() or existing
         if value and not any(c.isspace() for c in value):
             return value
-        print("  Enter a token without whitespace; input stays hidden.")
+        console.notice("Enter a token without whitespace; input stays hidden.", marker="!", color="gold")
 
 
 def helper_credentials(config, workflow, console, *, edit=False, required=False):
@@ -59,18 +67,18 @@ def helper_credentials(config, workflow, console, *, edit=False, required=False)
                 "Use a token from a different GitHub account.",
                 "We read its identity and use its GitHub noreply email for co-authorship.",
                 "This helper only needs authenticated profile access; it does not merge or write to your repo.",
-            ], "gold")
+            ])
         elif workflow == "starstruck":
             console.panel("STARSTRUCK / optional helper star", [
                 "Use a token from a different GitHub account to contribute one star.",
                 "A classic public_repo token works; a fine-grained token needs account Starring: read/write.",
                 "No collaborator invitation is needed for this public repository.",
-            ], "gold")
+            ])
         else:
             console.panel("HELPER ACCOUNT", [
                 "Use a classic PAT with repo scope from a different account.",
                 "The helper must already have accepted a collaborator invitation.",
-            ], "gold")
+            ])
         config = replace(config, helper_token=secret("Helper token (hidden)", config.helper_token))
     return config
 

@@ -85,9 +85,9 @@ def launch_startup(config, env_file, state_dir, console, *, duration=3.0, sleep=
             remaining = started + duration * index / (len(probes) + 1) - clock()
             if remaining > 0:
                 sleep(remaining)
-        color = "red" if status == "NEEDS SETUP" else "green" if status in {"READY", "PRESENT", "FOUND"} else "cyan"
-        console.notice(f"{name} : {status}", marker="!" if color == "red" else "+", color=color)
-    console.notice("Checks complete. Opening the tool...", marker="-", color="cyan")
+        color = "gold" if status == "NEEDS SETUP" else "green" if status in {"READY", "PRESENT", "FOUND"} else "info"
+        console.notice(f"{name} : {status}", marker="!" if color == "gold" else "+", color=color)
+    console.notice("Checks complete. Opening the tool...", marker="-", color="info")
     remaining = started + duration - clock()
     if remaining > 0:
         sleep(remaining)
@@ -112,8 +112,8 @@ def configuration_warning(config):
 def show_startup(config, env_file, state_dir, console):
     console.heading("STARTUP / local requirements")
     for name, status, detail in startup_checks(config, env_file, state_dir):
-        color = "red" if status == "NEEDS SETUP" else "green" if status in {"READY", "PRESENT", "FOUND"} else "cyan"
-        console.notice(f"{name} : {status}", marker="!" if color == "red" else "+", color=color)
+        color = "gold" if status == "NEEDS SETUP" else "green" if status in {"READY", "PRESENT", "FOUND"} else "info"
+        console.notice(f"{name} : {status}", marker="!" if color == "gold" else "+", color=color)
         console.say("     " + detail, "muted")
     console.say("Local settings only. Check connection validates GitHub access.", "muted")
     console.say("Solo: Pull Shark, Quickdraw. Helper: Pair Extraordinaire, YOLO, Galaxy Brain.", "muted")
@@ -127,7 +127,7 @@ def show_workflow_requirements(workflow, config, console):
         lines.append("Helper token: " + ("present; identity/access checked before execution." if config.helper_token
                                          else "missing; guided setup requests it before execution."))
     lines.append("Preview needs a repository name. Execution checks credentials and repository requirements first.")
-    console.panel(achievement.name.upper() + " / requirements", lines, "gold")
+    console.panel(achievement.name.upper() + " / requirements", lines)
 
 
 def setup_guide(console):
