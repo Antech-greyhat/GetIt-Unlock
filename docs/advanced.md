@@ -2,7 +2,7 @@
 
 For the shortest setup, use the numbered steps in [README.md](../README.md).
 
-See [running on your operating system](../README.md#run-on-your-operating-system) for Windows, Linux, Termux, and macOS setup. Windows uses `python main.py` by default; Linux and Termux use `bash main.sh`. All Python command examples here also work by replacing `python main.py` with `bash main.sh` and keeping the arguments.
+See [running on your operating system](../README.md#run-on-your-operating-system) for Windows, Linux, Termux, and macOS setup. Windows uses `.\main.ps1`; Linux and Termux use `bash main.sh`. Replace `python main.py` in these examples with your OS launcher and keep the arguments, or use the Python interpreter where you installed `requirements.txt`.
 
 ## Use a token limited to one repository
 
@@ -149,11 +149,11 @@ python main.py verify --account YOUR_USERNAME --json
 python main.py --help
 ```
 
-`setup` can create an initialized repository or configure a helper. `doctor` only checks an existing repository. `bash main.sh`, `python -m getit_unlock`, and an installed `getit-unlock` command work as alternatives to `python main.py`.
+`setup` can create an initialized repository or configure a helper. `doctor` only checks an existing repository. `requirements` reports local runtime/configuration status without network access. `bash main.sh`, `.\main.ps1`, `python -m getit_unlock`, and an installed `getit-unlock` command work as alternatives to `python main.py`.
 
 Public badge checks report visible, not visible, or unknown. They do not infer tier levels or distinguish a newly awarded badge from one you already had. Hidden badges, delayed awards and changed GitHub markup limit what can be confirmed. `--wait-for-badge 120` waits after a successful run; `--skip-badge-check` skips the public profile check. Neither setting changes contribution counts.
 
-Exit codes: 0 success/preview, 1 configuration/API error, 2 argument error, 3 a requested badge is not confirmed by `verify`, 130 interruption.
+Exit codes: 0 success/preview, 1 configuration/API error, 2 argument error, 3 a requested badge is not confirmed by `verify`, 130 keyboard interruption/EOF, 143 termination signal. Interrupting a nested workflow exits the complete interactive session after journal/lock cleanup and displays one farewell banner. JSON output stays free of banners.
 
 ## Optional virtual environment and development
 
@@ -161,18 +161,20 @@ Windows:
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python main.py
+.venv\Scripts\python -m pip install --no-cache-dir -r requirements.txt
+.\main.ps1
 ```
 
 macOS/Linux:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install --no-cache-dir -r requirements.txt
 bash main.sh
 ```
 
-There are no third-party runtime packages. Optional `pip install -e .` uses setuptools as its build dependency, declared in `pyproject.toml`.
+Rich renders banners, panels, progress, and loading indicators. prompt_toolkit handles keyboard menus, scrolling, and terminal restoration on Linux/Termux and Windows. Version ranges are declared in `requirements.txt` and `pyproject.toml`. Optional `pip install --no-cache-dir -e .` also obtains the setuptools build dependency.
 
-Run the offline tests with `python -m unittest discover -s tests -v`. Tests simulate GitHub responses; they cannot prove a live badge award. CI is configured for Windows and Linux on Python 3.11 and 3.14, including Bash launcher checks on both operating systems.
+Run the offline tests with `python -B -m unittest discover -s tests -v` using an interpreter with the requirements installed. Set `PYTHONDONTWRITEBYTECODE=1` for subprocesses as well. Tests simulate GitHub responses; they cannot prove a live badge award. CI covers Windows and Linux on Python 3.11 and 3.14, including Bash and PowerShell launchers and menu rendering at 20, 40, and 80 columns.
+
+Use `--plain` to select numbered menus without terminal cursor control, or `--no-animation` for static loading messages. The options work before or after a command. `NO_COLOR` removes colors. Startup inspection and previews create no state directories; `.achievement-state` is the persistent operation journal and should be kept between real runs.

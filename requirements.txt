@@ -1,4 +1,5 @@
 # Python 3.11 or newer is required (install Python separately).
-# There are no third-party runtime dependencies: this CLI uses the standard library.
+rich>=14.0,<16
+prompt_toolkit>=3.0.48,<4
 # Git is needed only for cloning this project, not for running GitHub workflows.
 # Optional `pip install -e .` obtains its setuptools>=77 build dependency via pyproject.toml.
