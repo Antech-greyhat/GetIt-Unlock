@@ -161,11 +161,11 @@ In PowerShell, use `$env:GETIT_UNLOCK_PYTHON = 'C:\path\to\python.exe'`. For Git
 
 ### Startup, menus, and exit
 
-Startup displays the developer banner, educational-use notice, Python/library versions, configuration status, and helper requirements before the main dashboard. Local checks do not connect to GitHub. Missing settings offer **Start guided setup**, **Read setup requirements**, **Continue to the dashboard**, or **Exit**. Helpers are requested when a selected workflow needs one.
+Startup checks local requirements one at a time on a separate loading screen. The whole sequence takes about three seconds, then clears and opens the main menu with the banner and educational-use notice. Missing credentials or an invalid repository setting appear in a short warning above the input prompt; you can browse and preview immediately, then use **05 · Connect or create a repository** to configure the tool later. The warning refreshes when you return to the menu. Local checks do not connect to GitHub. Helpers are requested when a selected workflow needs one.
 
 Type an option number such as **01** or **1**, then press **Enter**. An empty **Enter** selects the displayed default. **00**, **0**, or **q** goes back, and exits from the main menu. **Ctrl+C** exits the complete session; an EOF also exits (Linux/Termux: **Ctrl+D**; Windows: **Ctrl+Z**, then **Enter**). Tokens use hidden input. Wide terminals arrange menus in columns; narrow terminals stack choices and use a compact banner.
 
-Use `bash main.sh --plain` (Windows: `.\main.ps1 --plain`) to disable colors, screen clearing, and animations. Add `--no-animation` to keep static loading messages while retaining colors. `NO_COLOR` disables color. Redirected output is static, and `--json` commands retain clean JSON. Developer, star, and fork URLs remain visible on all terminals; terminals that support hyperlinks can also make them clickable.
+Use `bash main.sh --plain` (Windows: `.\main.ps1 --plain`) to disable colors, screen clearing, and animations. Add `--no-animation` to keep static loading messages while retaining colors. Both options skip startup delays; plain output retains the check results for scrollback. `NO_COLOR` disables color. Redirected output is static, and `--json` commands retain clean JSON. Developer, star, and fork URLs remain visible on all terminals; terminals that support hyperlinks can also make them clickable.
 
 The exit screen shows your developer profile and clickable **Star**/**Fork** URLs, followed by **Thanks for using this tool, dont forget to star and fork**. Links open in terminals that support hyperlinks; the complete URLs can also be copied. No browser opens automatically and no stars/forks are submitted automatically.
 

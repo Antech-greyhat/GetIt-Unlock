@@ -5,16 +5,16 @@ import os
 import signal
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
 from rich.console import Console as RichConsole
 
 from getit_unlock.cli import bootstrap
-from getit_unlock.cli.brand import FAREWELL, FORK_URL, PROFILE_URL, REPOSITORY_URL
+from getit_unlock.cli.brand import DISCLAIMER, FAREWELL, FORK_URL, PROFILE_URL, REPOSITORY_URL
 from getit_unlock.cli.commands import Terminated, main
-from getit_unlock.cli.preflight import startup_checks
+from getit_unlock.cli.preflight import configuration_warning, launch_startup, startup_checks
 from getit_unlock.cli.ui import Choice, Console, UI_OPTIONS, UIOptions
 from getit_unlock.core.config import Config
 
@@ -86,6 +86,55 @@ class SessionTests(unittest.TestCase):
             self.assertIn(url, output)
         self.assertFalse((self.path / "state").exists())
         self.assertFalse((self.path / ".env").exists())
+
+    def test_startup_disappears_before_main_prompt_without_forcing_setup(self):
+        output = io.StringIO()
+        screens = []
+
+        def exit_from_prompt():
+            screens.append(output.getvalue().rsplit("\x1b[H", 1)[-1])
+            return "00"
+
+        with patch.dict(os.environ, {"NO_COLOR": "1"}, clear=True), patch("sys.stdin.isatty", return_value=True), patch(
+            "getit_unlock.cli.ui.enable_terminal", return_value=True
+        ), patch("builtins.input", side_effect=exit_from_prompt), patch(
+            "getit_unlock.cli.commands.setup", side_effect=AssertionError("Do not force setup")
+        ), patch("getit_unlock.cli.commands.make_runner", side_effect=AssertionError("No startup network")), redirect_stdout(output):
+            self.assertEqual(main(self.args + ["--no-animation"]), 0)
+        self.assertEqual(len(screens), 1)
+        screen = screens[0]
+        self.assertNotIn("STARTUP / local requirements", screen)
+        self.assertNotIn("Checking credentials", screen)
+        self.assertIn("SELECT AN OPTION", screen)
+        self.assertIn("".join(DISCLAIMER.split()), "".join(screen.split()))
+        self.assertLess(screen.index("[00] Exit"), screen.index("Required:"))
+        self.assertLess(screen.index("Required:"), screen.index("Select an option"))
+        self.assertIn("TARGET_REPO=OWNER/REPO", screen)
+        self.assertFalse((self.path / ".env").exists())
+        self.assertFalse((self.path / "state").exists())
+
+    def test_warning_refreshes_after_setup_and_old_menu_is_cleared(self):
+        output = io.StringIO()
+        screens = []
+        answers = iter(("05", "01", "", "00"))
+
+        def answer():
+            screens.append(output.getvalue().rsplit("\x1b[H", 1)[-1])
+            return next(answers)
+
+        def configure(config, env_file, workflow):
+            env_file.write_text("GITHUB_TOKEN=secret-token\nTARGET_REPO=alice/lab\n", encoding="utf-8")
+
+        with patch.dict(os.environ, {"NO_COLOR": "1"}, clear=True), patch("sys.stdin.isatty", return_value=True), patch(
+            "getit_unlock.cli.ui.enable_terminal", return_value=True
+        ), patch("builtins.input", side_effect=answer), patch("getit_unlock.cli.commands.setup", side_effect=configure), redirect_stdout(output):
+            self.assertEqual(main(self.args + ["--no-animation"]), 0)
+        self.assertIn("Required:", screens[0])
+        self.assertNotIn("Required:", screens[-1])
+        self.assertNotIn("ACCOUNT SETTINGS", screens[-1])
+        self.assertIn("alice/lab", screens[-1])
+        self.assertIn("".join(DISCLAIMER.split()), "".join(screens[-1].split()))
+        self.assertNotIn("secret-token", output.getvalue())
 
     def test_nested_interrupt_exits_whole_session_with_one_farewell(self):
         with patch.dict(os.environ, {"GITHUB_TOKEN": "secret-token", "TARGET_REPO": "alice/lab"}, clear=True), patch(
@@ -201,6 +250,66 @@ class PresentationTests(unittest.TestCase):
             checks = startup_checks(Config("alice/lab", "secret"), path / ".env", path / "state")
             self.assertEqual(next(status for name, status, _ in checks if name == "Primary token"), "PRESENT")
             self.assertFalse((path / "state").exists())
+
+
+class StartupTests(unittest.TestCase):
+    def test_checks_run_inside_their_loading_phase_with_three_seconds_total(self):
+        events = []
+        now = [0.0]
+
+        class LoadingConsole:
+            animate = True
+
+            def clear(self):
+                events.append("clear")
+
+            def heading(self, title):
+                events.append("heading")
+
+            @contextmanager
+            def loading(self, message):
+                events.append(message)
+                yield
+                events.append("finished loading")
+
+            def notice(self, text, **kwargs):
+                events.append(text)
+
+        def probe(name):
+            self.assertEqual(events[-1], "Checking " + name)
+            events.append("evaluated " + name)
+            return "READY", "local result"
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        probes = [(name, "Checking " + name, lambda name=name: probe(name)) for name in ("first", "second", "third")]
+        with patch("getit_unlock.cli.preflight.startup_probes", return_value=probes):
+            launch_startup(Config(), Path("missing.env"), Path("state"), LoadingConsole(), sleep=sleep, clock=lambda: now[0])
+        self.assertEqual(events[:2], ["clear", "heading"])
+        for previous, following in (("first", "second"), ("second", "third")):
+            self.assertLess(events.index(previous + " : READY"), events.index("Checking " + following))
+        self.assertAlmostEqual(now[0], 3.0)
+
+    def test_static_launch_has_no_delay_and_optional_helper_does_not_warn(self):
+        config = Config("alice/lab", "primary-secret")
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()), patch.dict(os.environ, {}, clear=True):
+            path = Path(directory)
+            console = Console()
+            console.animate = False
+            launch_startup(config, path / ".env", path / "state", console,
+                           sleep=lambda seconds: self.fail("Static output must not wait"))
+            self.assertEqual(configuration_warning(config), "")
+            self.assertFalse((path / "state").exists())
+
+    def test_invalid_settings_warn_without_printing_credentials(self):
+        config = Config("invalid", "primary secret", "helper secret")
+        warning = configuration_warning(config)
+        self.assertIn("GITHUB_TOKEN without whitespace", warning)
+        self.assertIn("TARGET_REPO=OWNER/REPO", warning)
+        self.assertIn("HELPER_TOKEN without whitespace", warning)
+        self.assertNotIn(config.token, warning)
+        self.assertNotIn(config.helper_token, warning)
 
 
 if __name__ == "__main__":

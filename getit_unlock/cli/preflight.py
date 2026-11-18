@@ -2,6 +2,7 @@
 import os
 import platform
 import sys
+import time
 from importlib.metadata import version
 
 from ..core.config import validate_repo
@@ -35,26 +36,77 @@ def platform_name():
     return platform.system()
 
 
+def startup_probes(config, env_file, state_dir):
+    """Defer each local check until its loading message is on screen."""
+    def repository():
+        try:
+            validate_repo(config.repo)
+            return "PRESENT", config.repo
+        except ValueError as exc:
+            return "NEEDS SETUP", str(exc)
+
+    def token(value, field, *, required=False):
+        if not value:
+            return ("NEEDS SETUP", f"Set {field} in .env or use guided setup") if required else (
+                "OPTIONAL", "Different account required for Pair Extraordinaire, YOLO and Galaxy Brain")
+        if any(character.isspace() for character in value):
+            return "NEEDS SETUP", f"Remove whitespace from {field}"
+        return "PRESENT", "Hidden; identity/access checked only when requested"
+
+    return [
+        ("Runtime", "Checking Python runtime...",
+         lambda: ("READY", f"Python {sys.version.split()[0]} / {platform_name()}")),
+        ("Terminal libraries", "Checking terminal requirements...", lambda: ("READY", f"Rich {version('rich')}")),
+        ("Configuration", "Checking local configuration...",
+         lambda: ("FOUND", str(env_file)) if env_file.exists() else (
+             "INFO", "No .env file; shell variables can supply configuration")),
+        ("Primary token", "Checking credentials...", lambda: token(config.token, "GITHUB_TOKEN", required=True)),
+        ("Target repository", "Checking target repository...", repository),
+        ("Helper token", "Checking optional helper credentials...", lambda: token(config.helper_token, "HELPER_TOKEN")),
+        ("Saved progress", "Checking saved progress...",
+         lambda: ("FOUND" if (state_dir / "progress.sqlite3").exists() else "NEW", str(state_dir / "progress.sqlite3"))),
+    ]
+
+
 def startup_checks(config, env_file, state_dir):
-    source = str(env_file) if env_file.exists() else "No .env file; shell variables can supply configuration"
+    return [(name, *probe()) for name, _, probe in startup_probes(config, env_file, state_dir)]
+
+
+def launch_startup(config, env_file, state_dir, console, *, duration=3.0, sleep=time.sleep, clock=time.monotonic):
+    """A separate, timed loading screen; explicit requirements commands stay static."""
+    console.clear()
+    console.heading("STARTUP / local requirements")
+    probes = startup_probes(config, env_file, state_dir)
+    duration = duration if console.animate else 0
+    started = clock()
+    for index, (name, message, probe) in enumerate(probes, 1):
+        with console.loading(message):
+            status, _ = probe()
+            remaining = started + duration * index / (len(probes) + 1) - clock()
+            if remaining > 0:
+                sleep(remaining)
+        color = "red" if status == "NEEDS SETUP" else "green" if status in {"READY", "PRESENT", "FOUND"} else "cyan"
+        console.notice(f"{name} : {status}", marker="!" if color == "red" else "+", color=color)
+    console.notice("Checks complete. Opening the tool...", marker="-", color="cyan")
+    remaining = started + duration - clock()
+    if remaining > 0:
+        sleep(remaining)
+
+
+def configuration_warning(config):
+    """Only requirements that need attention; never include token values."""
+    needed = []
+    if not config.token:
+        needed.append("GITHUB_TOKEN (or GH_TOKEN)")
+    elif any(character.isspace() for character in config.token):
+        needed.append("GITHUB_TOKEN without whitespace")
     try:
         validate_repo(config.repo)
-        repo_status, repo_detail = "PRESENT", config.repo
-    except ValueError as exc:
-        repo_status, repo_detail = "NEEDS SETUP", str(exc)
-    journal = state_dir / "progress.sqlite3"
-    return [
-        ("Runtime", "READY", f"Python {sys.version.split()[0]} / {platform_name()}"),
-        ("Terminal libraries", "READY", f"Rich {version('rich')}"),
-        ("Configuration", "FOUND" if env_file.exists() else "INFO", source),
-        ("Primary token", "PRESENT" if config.token else "NEEDS SETUP",
-         "Hidden; checked against GitHub only when you request a connection check or execution" if config.token
-         else "Set GITHUB_TOKEN (or GH_TOKEN) in .env or use guided setup"),
-        ("Target repository", repo_status, repo_detail),
-        ("Helper token", "PRESENT" if config.helper_token else "OPTIONAL",
-         "Different account required for Pair Extraordinaire, YOLO and Galaxy Brain"),
-        ("Saved progress", "FOUND" if journal.exists() else "NEW", str(journal)),
-    ]
+    except ValueError:
+        needed.append("TARGET_REPO=OWNER/REPO")
+    if config.helper_token and any(character.isspace() for character in config.helper_token):
+        needed.append("HELPER_TOKEN without whitespace")
+    return "Required: " + ", ".join(needed) + ". Set later via 05 / setup." if needed else ""
 
 
 def show_startup(config, env_file, state_dir, console):
