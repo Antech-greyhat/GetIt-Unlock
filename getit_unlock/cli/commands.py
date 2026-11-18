@@ -220,7 +220,7 @@ def show_plan(args, config):
     if args.achievement == "starstruck":
         console.say("Stars must come from other users; each account can contribute one star to this repository.", "muted")
         if args.star_with_helper:
-            console.say("Use the verified helper to star this repository once; an existing star is kept.", "gold")
+            console.say("Use the verified helper to star this repository once; an existing star is kept.", "menu")
         if args.wait_for_stars:
             console.say(f"Poll received stars for up to {args.wait_for_stars} seconds.", "muted")
     if achievement.helper:
@@ -229,18 +229,18 @@ def show_plan(args, config):
         console.say("Co-author identity is resolved from the helper; GitHub must recognize both commit authors.", "muted")
     if args.achievement in PR_WORKFLOWS:
         messages = render_messages(config, args.achievement, PREVIEW_OPERATION)
-        console.say(f"\nMessage files: {message_directory(config)}", "cyan")
+        console.say(f"\nMessage files: {message_directory(config)}", "muted")
         console.say("Messages are selected automatically in file order using saved progress.", "muted")
-        console.say("Message preview / first entries and sample ID; execution uses the next saved position.", "cyan")
+        console.say("Message preview / first entries and sample ID; execution uses the next saved position.", "menu")
         for field, message in messages.items():
-            console.say(f"  {MESSAGE_LABELS[field]}:", "gold")
+            console.say(f"  {MESSAGE_LABELS[field]}:", "menu")
             for line in config.redact(message).splitlines():
                 console.say(f"    {line}")
 
 
 def display_badges(result):
     console = Console()
-    console.panel("GITHUB / badge visibility", [result["account"], result["profile_url"]], "gold")
+    console.panel("GITHUB / badge visibility", [result["account"], result["profile_url"]])
     labels = {"visible": ("VISIBLE ON GITHUB", "green"), "not_visible": ("NOT VISIBLE YET", "gold"), "unknown": ("UNKNOWN", "muted")}
     for slug, status in result["badges"].items():
         label, color = labels[status]
@@ -342,7 +342,7 @@ def run_wizard(env_file, state_dir, repo=None):
         raise ValueError("Choose an achievement ID for scripted runs, or open the interactive menu in a terminal.")
     console = Console()
     console.session()
-    workflow = console.choose("01 / Choose your achievement", [
+    workflow = console.choose("01 / Choose a badge", [
         Choice(a.slug, a.name, "Received stars" if a.slug == "starstruck" else
                ("Helper account" if a.helper else "Solo workflow"))
         for a in ACHIEVEMENTS.values()
@@ -358,7 +358,7 @@ def run_wizard(env_file, state_dir, repo=None):
                for tier, index in TIERS.items() if index < len(achievement.thresholds)]
     if workflow != "starstruck":
         choices.append(Choice("custom", "Custom count", "New operations"))
-    target = console.choose("02 / Choose your target", choices + [Choice("back", "Back")])
+    target = console.choose("02 / Choose a level", choices + [Choice("back", "Back")])
     if target == "back":
         return 0
     amount = ["--tier", target]
@@ -388,7 +388,7 @@ def run_wizard(env_file, state_dir, repo=None):
     preview = build_parser().parse_args(command)
     console.session()
     show_plan(preview, config)
-    action = console.choose("03 / REVIEW AND CHOOSE", [
+    action = console.choose("03 / Review your plan", [
         Choice("execute", "Run this workflow", "Check received stars and badge visibility" if workflow == "starstruck"
                else "Use the predefined messages and verify the workflow"),
         Choice("preview", "Keep as preview", "No GitHub changes"),
@@ -420,7 +420,7 @@ def interactive(env_file, state_dir, repo):
         completed = sum(row["count"] for row in summary if row["status"] == "completed")
         pending = sum(row["count"] for row in summary if row["status"] not in {"completed", "observed"})
         console.banner(config.repo, completed, pending)
-        choice = console.choose("SELECT AN OPTION", [
+        choice = console.choose("MAIN MENU", [
             Choice("run", "Unlock an achievement", "Choose a badge and target tier"),
             Choice("verify", "Check GitHub badges", "Read your public profile"),
             Choice("status", "Your progress", "Completed operations and anything to inspect"),

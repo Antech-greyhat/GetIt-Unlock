@@ -34,3 +34,30 @@ TINY_MARK = r"""    .---.
   .-+---+-. UNLOCK
   |   o   |
   '-------'"""
+
+# Compact three-row lettering gives menu headings their own visual weight.
+# Keep an ordinary title alongside it for copy/paste and accessible output.
+MENU_LETTERS = {
+    "A": (" _ ", "|_|", "| |"), "B": (" _ ", "|_)", "|_)"),
+    "C": (" _", "| ", "|_"), "D": (" _ ", "| )", "|_/"),
+    "E": (" _", "|_", "|_"), "F": (" _", "|_", "| "),
+    "G": (" _ ", "| _", "|_|"), "H": ("   ", "|_|", "| |"),
+    "I": ("___", " | ", "_|_"), "J": (" __", "  |", "|_|"),
+    "K": ("  ", "|/", "|\\"), "L": ("  ", "| ", "|_"),
+    "M": ("    ", "|\\/|", "|  |"), "N": ("    ", "|\\ |", "| \\|"),
+    "O": (" _ ", "| |", "|_|"), "P": (" _ ", "|_|", "|  "),
+    "Q": (" _ ", "| |", "|_\\"), "R": (" _ ", "|_|", "| \\"),
+    "S": (" _ ", "|_ ", " _|"), "T": ("___", " | ", " | "),
+    "U": ("   ", "| |", "|_|"), "V": ("   ", "| |", " \\/"),
+    "W": ("     ", "|   |", "|/\\|"), "X": ("   ", "\\ /", " /\\"),
+    "Y": ("   ", "\\ /", " | "), "Z": ("__ ", " / ", "/__"),
+    " ": (" ", " ", " "),
+}
+
+
+def menu_lettering(title):
+    if not title or any(letter not in MENU_LETTERS for letter in title.upper()):
+        return ""
+    return "\n".join(" ".join(MENU_LETTERS[letter][row].ljust(max(map(len, MENU_LETTERS[letter])))
+                              for letter in title.upper()).rstrip()
+                     for row in range(3))

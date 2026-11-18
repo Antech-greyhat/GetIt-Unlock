@@ -15,7 +15,7 @@ from getit_unlock.cli import bootstrap
 from getit_unlock.cli.brand import DISCLAIMER, FAREWELL, FORK_URL, PROFILE_URL, REPOSITORY_URL
 from getit_unlock.cli.commands import Terminated, main
 from getit_unlock.cli.preflight import configuration_warning, launch_startup, startup_checks
-from getit_unlock.cli.ui import Choice, Console, UI_OPTIONS, UIOptions
+from getit_unlock.cli.ui import Choice, Console, UI_OPTIONS, UIOptions, clean
 from getit_unlock.core.config import Config
 
 
@@ -92,7 +92,7 @@ class SessionTests(unittest.TestCase):
         screens = []
 
         def exit_from_prompt():
-            screens.append(output.getvalue().rsplit("\x1b[H", 1)[-1])
+            screens.append(clean(output.getvalue().rsplit("\x1b[H", 1)[-1]))
             return "00"
 
         with patch.dict(os.environ, {"NO_COLOR": "1"}, clear=True), patch("sys.stdin.isatty", return_value=True), patch(
@@ -105,7 +105,7 @@ class SessionTests(unittest.TestCase):
         screen = screens[0]
         self.assertNotIn("STARTUP / local requirements", screen)
         self.assertNotIn("Checking credentials", screen)
-        self.assertIn("SELECT AN OPTION", screen)
+        self.assertIn("MAIN MENU", screen)
         self.assertIn("".join(DISCLAIMER.split()), "".join(screen.split()))
         self.assertLess(screen.index("[00] Exit"), screen.index("Required:"))
         self.assertLess(screen.index("Required:"), screen.index("Select an option"))
@@ -119,7 +119,7 @@ class SessionTests(unittest.TestCase):
         answers = iter(("05", "01", "", "00"))
 
         def answer():
-            screens.append(output.getvalue().rsplit("\x1b[H", 1)[-1])
+            screens.append(clean(output.getvalue().rsplit("\x1b[H", 1)[-1]))
             return next(answers)
 
         def configure(config, env_file, workflow):
