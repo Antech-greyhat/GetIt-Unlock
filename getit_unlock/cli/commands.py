@@ -19,7 +19,8 @@ from ..workflows.runner import WorkflowRunner
 from ..github.badges import check_badges
 from .onboarding import ensure_credentials, helper_credentials, save_config, setup
 from .ui import Choice, Console, UIOptions, UI_OPTIONS
-from .preflight import setup_guide, show_startup, show_workflow_requirements, startup_checks
+from .preflight import (configuration_warning, launch_startup, setup_guide,
+                        show_startup, show_workflow_requirements, startup_checks)
 from ..workflows.cleanup import cleanup_tracked
 from ..messages.templates import (MESSAGE_FILES, MESSAGE_LABELS, PR_WORKFLOWS, PREVIEW_OPERATION,
                                  message_directory, render_messages, validate_message_templates)
@@ -340,6 +341,7 @@ def run_wizard(env_file, state_dir, repo=None):
     if not sys.stdin.isatty():
         raise ValueError("Choose an achievement ID for scripted runs, or open the interactive menu in a terminal.")
     console = Console()
+    console.session()
     workflow = console.choose("01 / Choose your achievement", [
         Choice(a.slug, a.name, "Received stars" if a.slug == "starstruck" else
                ("Helper account" if a.helper else "Solo workflow"))
@@ -349,6 +351,7 @@ def run_wizard(env_file, state_dir, repo=None):
         return 0
     achievement = ACHIEVEMENTS[workflow]
     config = Config.load(env_file, repo=repo)
+    console.session()
     show_workflow_requirements(workflow, config, console)
     choices = [Choice(tier, tier.title(), f"{achievement.thresholds[index]} "
                       + ("received stars" if workflow == "starstruck" else "total recorded successes"))
@@ -365,6 +368,7 @@ def run_wizard(env_file, state_dir, repo=None):
                 raise ValueError("Enter a positive whole number.")
         amount = ["--count", console.ask("New operations", "1", validator=validate_count)]
     if workflow == "starstruck":
+        console.session()
         star_action = console.choose("Starstruck automation", [
             Choice("track", "Track received stars", "Read current progress and check the badge"),
             Choice("helper", "Add a helper star and track", "A different account contributes one star"),
@@ -382,6 +386,7 @@ def run_wizard(env_file, state_dir, repo=None):
     common = ["--env-file", str(env_file), "--state-dir", str(state_dir), "--repo", config.repo]
     command = common + ["run", workflow, *amount]
     preview = build_parser().parse_args(command)
+    console.session()
     show_plan(preview, config)
     action = console.choose("03 / REVIEW AND CHOOSE", [
         Choice("execute", "Run this workflow", "Check received stars and badge visibility" if workflow == "starstruck"
@@ -390,6 +395,7 @@ def run_wizard(env_file, state_dir, repo=None):
         Choice("back", "Back"),
     ], default=1)
     if action == "execute":
+        console.session()
         return main(command + ["--execute"])
     console.say("Preview only. Your plan has not been executed.", "muted")
     return 0
@@ -400,39 +406,8 @@ def interactive(env_file, state_dir, repo):
         build_parser().print_help()
         return 0
     console = Console()
-    console.clear()
-    console.masthead(disclaimer=True)
-    with console.activity("Inspecting local requirements"):
-        config = Config.load(env_file, repo=repo)
-        startup_checks(config, env_file, state_dir)
-    show_startup(config, env_file, state_dir, console)
-    try:
-        config.validate(credentials=True)
-        needs_setup = False
-    except ValueError:
-        needs_setup = True
-    while needs_setup:
-        action = console.choose("STARTUP / CHOOSE YOUR NEXT STEP", [
-            Choice("setup", "Start guided setup", "Connect your primary account and repository"),
-            Choice("guide", "Read setup requirements", "Token links and helper-account guidance"),
-            Choice("browse", "Continue to the dashboard", "Browse, preview, or inspect saved progress"),
-            Choice("back", "Exit"),
-        ])
-        if action == "back":
-            return 0
-        if action == "browse":
-            break
-        if action == "guide":
-            setup_guide(console)
-            continue
-        try:
-            setup(config, env_file)
-            # Reload to reflect any shell overrides rather than displaying saved values as active.
-            config = Config.load(env_file, repo=repo)
-            config.validate(credentials=True)
-            needs_setup = False
-        except (ValueError, GitHubError, OSError) as exc:
-            console.say(config.redact(str(exc)), "gold")
+    config = Config.load(env_file, repo=repo)
+    launch_startup(config, env_file, state_dir, console)
     common = ["--env-file", str(env_file), "--state-dir", str(state_dir)]
     if repo:
         common.extend(["--repo", repo])
@@ -444,7 +419,7 @@ def interactive(env_file, state_dir, repo):
                 summary = store.summary(repo=config.repo)
         completed = sum(row["count"] for row in summary if row["status"] == "completed")
         pending = sum(row["count"] for row in summary if row["status"] not in {"completed", "observed"})
-        console.banner(config.repo, completed, pending, bool(config.token))
+        console.banner(config.repo, completed, pending)
         choice = console.choose("SELECT AN OPTION", [
             Choice("run", "Unlock an achievement", "Choose a badge and target tier"),
             Choice("verify", "Check GitHub badges", "Read your public profile"),
@@ -455,9 +430,11 @@ def interactive(env_file, state_dir, repo):
             Choice("requirements", "Requirements and advanced tools", "Setup guide and history-reset preview"),
             Choice("cleanup", "Clean up merged branches", "Preview leftover workflow branches"),
             Choice("back", "Exit"),
-        ])
+        ], warning=configuration_warning(config))
         if choice == "back":
             return 0
+        if choice != "run":
+            console.session()
         if choice == "run":
             try:
                 run_wizard(env_file, state_dir, repo)
@@ -469,6 +446,7 @@ def interactive(env_file, state_dir, repo):
             if main(common + ["cleanup"]) == 0:
                 action = console.choose("CLEANUP", [Choice("execute", "Remove verified merged branches"), Choice("back", "Back")])
                 if action == "execute":
+                    console.session()
                     main(common + ["cleanup", "--execute"])
         elif choice == "setup":
             section = console.choose("ACCOUNT SETTINGS", [
@@ -480,6 +458,7 @@ def interactive(env_file, state_dir, repo):
                 Choice("back", "Back"),
             ])
             if section != "back":
+                console.session()
                 main(common + ["setup"] + ([] if section == "primary" else ["--workflow", section]))
         elif choice == "doctor":
             workflow = console.choose("CHECK CONNECTION / REQUIREMENTS", [
@@ -489,6 +468,7 @@ def interactive(env_file, state_dir, repo):
             ])
             if workflow == "back":
                 continue
+            console.session()
             main(common + ["doctor"] + ([] if workflow == "general" else ["--workflow", workflow]))
         elif choice == "requirements":
             section = console.choose("REQUIREMENTS AND ADVANCED TOOLS", [
@@ -498,6 +478,7 @@ def interactive(env_file, state_dir, repo):
             ])
             if section == "back":
                 continue
+            console.session()
             main(common + [section])
         elif choice == "verify" and not config.repo:
             account = console.ask("GitHub username", required=True)

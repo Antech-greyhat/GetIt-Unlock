@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import time
+from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 
@@ -133,15 +134,17 @@ class Console:
         if mark != WORDMARK:
             self.say("     " + PROJECT_NAME.upper(), "muted")
         if disclaimer:
-            self.panel("EDUCATIONAL USE", [DISCLAIMER], "gold")
+            self.notice("EDUCATIONAL USE: " + DISCLAIMER, marker="!", color="gold")
 
-    def banner(self, repo="", completed=0, pending=0, configured=False):
+    def session(self):
+        """Start a clean tool screen with its banner and educational-use notice."""
         self.clear()
-        self.masthead()
+        self.masthead(disclaimer=True)
+
+    def banner(self, repo="", completed=0, pending=0):
+        self.session()
         self.say()
         self.notice("Repository : " + (repo or "setup needed"), color="cyan")
-        self.notice("Primary token : " + ("configured; check connection to verify" if configured else "missing"),
-                    marker="+" if configured else "!", color="green" if configured else "red")
         self.notice(f"Completed : {completed}  /  To inspect : {pending}", color="cyan")
 
     def goodbye(self):
@@ -152,7 +155,7 @@ class Console:
         self.say()
         self.rich.print(Text(FAREWELL, style="bold black on bright_cyan"))
 
-    def choose(self, title, choices, *, default=0):
+    def choose(self, title, choices, *, default=0, warning=""):
         if not choices or not 0 <= default < len(choices):
             raise ValueError("A menu needs choices and a valid default.")
         self.heading(title)
@@ -189,6 +192,8 @@ class Console:
         selections = {str(index): choice.value for index, choice in numbered}
         selections["0"] = "back"
         while True:
+            if warning:
+                self.notice(warning, marker="!", color="gold")
             value = self.read("Select an option").strip().lower()
             if value in {"0", "00", "q", "back", "\x1b"}:
                 return "back"
@@ -228,6 +233,18 @@ class Console:
 
     def activity(self, message):
         return Activity(self, message)
+
+    @contextmanager
+    def loading(self, message):
+        line = Text(" ")
+        line.append_text(self.bracket("-", "cyan"))
+        line.append(" " + clean(message), style="cyan")
+        if self.animate:
+            with self.rich.status(line, spinner="line", refresh_per_second=12):
+                yield
+        else:
+            self.rich.print(line)
+            yield
 
     def progress(self, current, total):
         progress = Progress(TextColumn("Completed"), BarColumn(bar_width=None),
