@@ -1,4 +1,4 @@
-"""Offline checks for startup, real menu keys, and complete session shutdown."""
+"""Offline checks for numbered menus, startup, and complete session shutdown."""
 import io
 import json
 import os
@@ -9,9 +9,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from prompt_toolkit.input import create_pipe_input
-from prompt_toolkit.output import DummyOutput
-from prompt_toolkit.data_structures import Size
+from rich.console import Console as RichConsole
 
 from getit_unlock.cli import bootstrap
 from getit_unlock.cli.brand import FAREWELL, FORK_URL, PROFILE_URL, REPOSITORY_URL
@@ -21,58 +19,44 @@ from getit_unlock.cli.ui import Choice, Console, UI_OPTIONS, UIOptions
 from getit_unlock.core.config import Config
 
 
-class SmallScreen(DummyOutput):
-    def __init__(self, columns=40):
-        self.columns = columns
+class NumberedMenuTests(unittest.TestCase):
+    def test_numbers_leading_zeroes_default_and_back(self):
+        choices = [Choice(str(i), f"Choice {i}") for i in range(1, 13)] + [Choice("back", "Exit")]
+        for value, expected in (("1", "1"), ("01", "1"), ("12", "12"), ("", "2"),
+                                ("0", "back"), ("00", "back"), ("q", "back"), ("back", "back")):
+            with self.subTest(value=value), redirect_stdout(io.StringIO()), patch("builtins.input", return_value=value):
+                self.assertEqual(Console().choose("Choose", choices, default=1), expected)
 
-    def get_size(self):
-        return Size(rows=12, columns=self.columns)
+    def test_wrapping_preserves_choices_and_back_at_mobile_widths(self):
+        choices = [Choice(str(i), f"Choice {i}", "A description wrapping across a small mobile screen")
+                   for i in range(1, 10)] + [Choice("back", "Exit")]
+        for width in (20, 40, 80):
+            output = io.StringIO()
+            with self.subTest(width=width), redirect_stdout(output), patch("builtins.input", return_value="09"):
+                console = Console()
+                console.rich.width = width
+                self.assertEqual(console.choose("Choose", choices), "9")
+                console.say()
+            text = output.getvalue()
+            self.assertTrue(all(len(line) <= width for line in text.splitlines()))
+            compact = "".join(text.split())
+            for number in range(1, 10):
+                self.assertIn(f"[{number:02}]Choice{number}", compact)
+            self.assertIn("[00]Exit", compact)
 
+    def test_invalid_numbers_reprompt_and_back_default_is_zero(self):
+        output = io.StringIO()
+        with redirect_stdout(output), patch("builtins.input", side_effect=["bad", "13", "9" * 5000, ""]):
+            result = Console().choose("Choose", [Choice("a", "One"), Choice("back", "Back")], default=1)
+        self.assertEqual(result, "back")
+        self.assertIn("Enter = 00", output.getvalue())
+        self.assertEqual(output.getvalue().count("Invalid option"), 3)
 
-class KeyboardTests(unittest.TestCase):
-    def test_scrolling_keeps_selected_description_and_exit_hint_visible(self):
-        description = "A description wrapping across a small mobile screen"
-        choices = [Choice(str(i), f"Choice {i}", description) for i in range(1, 10)]
-        for columns in (20, 40, 80):
-            with self.subTest(columns=columns), create_pipe_input() as keyboard:
-                pages = []
-
-                def inspect_screen(app):
-                    if len(pages) >= 2:
-                        return
-                    screen = app.renderer.last_rendered_screen
-                    pages.append("\n".join(
-                        "".join(screen.data_buffer[row][col].char for col in range(columns)).rstrip()
-                        for row in range(screen.height)
-                    ))
-                    keyboard.send_text("\x1b[A" if len(pages) == 1 else "\r")
-
-                app = Console().menu_application(choices, input=keyboard, output=SmallScreen(columns))
-                app.after_render += inspect_screen
-                self.assertEqual(app.run(), "9")
-                self.assertEqual(len(pages), 2)
-                self.assertIn(">  9  Choice 9", pages[1])
-                compact = "".join(pages[1].split())
-                self.assertIn("".join(description.split()), compact)
-                self.assertIn("Ctrl+Cexit", compact)
-                self.assertLessEqual(len(pages[1].splitlines()), 12)
-
-    def test_number_back_and_wrapped_arrow_navigation(self):
-        choices = [Choice(str(i), f"Choice {i}", "A description wrapping across a small mobile screen") for i in range(1, 10)]
-        for keys, expected in (("9", "9"), ("0", "back"), ("q", "back"),
-                               ("\x1b[A\r", "9"), ("jj\r", "3"), ("\t\r", "2")):
-            with self.subTest(keys=repr(keys)), create_pipe_input() as keyboard:
-                keyboard.send_text(keys)
-                app = Console().menu_application(choices, input=keyboard, output=SmallScreen())
-                self.assertEqual(app.run(), expected)
-
-    def test_eof_shortcuts_exit_prompt(self):
-        for keys in ("\x04", "\x1a"):
-            with self.subTest(keys=repr(keys)), create_pipe_input() as keyboard:
-                keyboard.send_text(keys)
-                app = Console().menu_application([Choice("a", "One")], input=keyboard, output=DummyOutput())
-                with self.assertRaises(EOFError):
-                    app.run()
+    def test_interrupt_and_eof_propagate_to_session_cleanup(self):
+        for error in (KeyboardInterrupt, EOFError):
+            with self.subTest(error=error), redirect_stdout(io.StringIO()), patch("builtins.input", side_effect=error):
+                with self.assertRaises(error):
+                    Console().choose("Choose", [Choice("a", "One")])
 
 
 class SessionTests(unittest.TestCase):
@@ -159,14 +143,21 @@ class PresentationTests(unittest.TestCase):
         for url in (PROFILE_URL, REPOSITORY_URL, FORK_URL):
             self.assertIn(url, "".join(value.split()))
 
-        output = io.StringIO()
-        with patch("getit_unlock.cli.ui.enable_terminal", return_value=True), redirect_stdout(output):
-            console = Console()
-            console.rich.width = 40
-            console.goodbye()
-        for url in (PROFILE_URL, REPOSITORY_URL, FORK_URL):
-            self.assertIn("\x1b]8;", output.getvalue())
-            self.assertIn(";" + url + "\x1b\\", output.getvalue())
+        # Rich omits OSC 8 hyperlinks in legacy Windows mode. Test each renderer explicitly
+        # so the host runner's console detection cannot change these expectations.
+        for legacy_windows in (False, True):
+            output = io.StringIO()
+            with self.subTest(legacy_windows=legacy_windows):
+                console = Console()
+                console.rich = RichConsole(file=output, width=40, force_terminal=True,
+                                           legacy_windows=legacy_windows, markup=False, highlight=False)
+                console.goodbye()
+                text = output.getvalue()
+                if legacy_windows:
+                    self.assertNotIn("\x1b]8;", text)
+                else:
+                    for url in (PROFILE_URL, REPOSITORY_URL, FORK_URL):
+                        self.assertIn(";" + url + "\x1b\\", text)
 
     def test_small_banner_and_literal_remote_text(self):
         output = io.StringIO()
@@ -194,7 +185,7 @@ class PresentationTests(unittest.TestCase):
 
     def test_missing_dependencies_are_actionable_without_importing_commands(self):
         output, errors = io.StringIO(), io.StringIO()
-        with patch.object(bootstrap, "missing_dependencies", return_value=["rich", "prompt_toolkit"]), redirect_stdout(
+        with patch.object(bootstrap, "missing_dependencies", return_value=["rich"]), redirect_stdout(
             output
         ), redirect_stderr(errors):
             code = bootstrap.launch(["list", "--json"])

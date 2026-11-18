@@ -10,14 +10,27 @@ DISCLAIMER = (
     "You are responsible for your actions; the developer is not responsible for abuse or misuse."
 )
 
-# Our own artwork; the reference project is used only for presentation ideas.
-WORDMARK = r"""   ____      _ ___ _         _   _       _            _
-  / ___| ___| |_ _| |_      | | | |_ __ | | ___   ___| | __
- | |  _ / _ \ || || __|_____| | | | '_ \| |/ _ \ / __| |/ /
- | |_| |  __/ || || ||_____| |_| | | | | | (_) | (__|   <
-  \____|\___|_|___|\__|     \___/|_| |_|_|\___/ \___|_|\_\
+# Bundled FIGlet standard/small lettering; no external artwork command is needed.
+# Zphisher inspired the warm wordmark, colored brackets, and numbered menus.
+WORDMARK = r"""   ____ _____ _____ ___ _____     _   _ _   _ _     ___   ____ _  __
+  / ___| ____|_   _|_ _|_   _|   | | | | \ | | |   / _ \ / ___| |/ /
+ | |  _|  _|   | |  | |  | |_____| | | |  \| | |  | | | | |   | ' /
+ | |_| | |___  | |  | |  | |_____| |_| | |\  | |__| |_| | |___| . \
+  \____|_____| |_| |___| |_|      \___/|_| \_|_____\___/ \____|_|\_\
 """
 
-COMPACT_MARK = r"""  +---+  GETIT
-  | G |  UNLOCK
-  +---+  GitHub achievement workflows"""
+COMPACT_MARK = r"""   ___ ___ _____ ___ _____
+  / __| __|_   _|_ _|_   _|
+ | (_ | _|  | |  | |  | |
+  \___|___| |_| |___| |_|
+  _   _ _  _ _    ___   ___ _  __
+ | | | | \| | |  / _ \ / __| |/ /
+ | |_| | .` | |_| (_) | (__| ' <
+  \___/|_|\_|____\___/ \___|_|\_\
+"""
+
+TINY_MARK = r"""    .---.
+    |   '   GETIT
+  .-+---+-. UNLOCK
+  |   o   |
+  '-------'"""

@@ -44,7 +44,7 @@ def common_arguments(parser):
     parser.add_argument("--state-dir", type=Path, default=argparse.SUPPRESS, help="Local journal directory (default: .achievement-state)")
     parser.add_argument("--repo", default=argparse.SUPPRESS, help="Target personal repository: OWNER/REPO")
     parser.add_argument("--plain", action="store_true", default=argparse.SUPPRESS,
-                        help="Use numbered menus and plain terminal output")
+                        help="Use plain output without colors or screen clearing")
     parser.add_argument("--no-animation", action="store_true", default=argparse.SUPPRESS,
                         help="Disable loading animations")
 
@@ -400,6 +400,7 @@ def interactive(env_file, state_dir, repo):
         build_parser().print_help()
         return 0
     console = Console()
+    console.clear()
     console.masthead(disclaimer=True)
     with console.activity("Inspecting local requirements"):
         config = Config.load(env_file, repo=repo)
@@ -444,7 +445,7 @@ def interactive(env_file, state_dir, repo):
         completed = sum(row["count"] for row in summary if row["status"] == "completed")
         pending = sum(row["count"] for row in summary if row["status"] not in {"completed", "observed"})
         console.banner(config.repo, completed, pending, bool(config.token))
-        choice = console.choose("YOUR NEXT MOVE", [
+        choice = console.choose("SELECT AN OPTION", [
             Choice("run", "Unlock an achievement", "Choose a badge and target tier"),
             Choice("verify", "Check GitHub badges", "Read your public profile"),
             Choice("status", "Your progress", "Completed operations and anything to inspect"),

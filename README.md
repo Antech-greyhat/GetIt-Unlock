@@ -4,12 +4,12 @@
 
 # GetIt-Unlock
 
-Run and verify six GitHub achievement workflows from a Rich terminal dashboard or a command. Numbered selections and prompt_toolkit keyboard menus work across Linux, Windows, and Termux. Startup explains missing configuration, guided setup connects your accounts, and previews show each workflow before execution.
+Run and verify six GitHub achievement workflows from a terminal menu or a command. The CLI uses an ASCII banner, colored brackets, and numbered menus inspired by Zphisher across Linux, Windows, and Termux. Startup explains missing configuration, guided setup connects your accounts, and previews show each workflow before execution.
 
 Developed by **[Antech-greyhat](https://github.com/Antech-greyhat)**. For educational purposes; users are responsible for their actions and the developer is not responsible for abuse or misuse. Read the [educational-use notice](DISCLAIMER.md). The code retains its [MIT license](LICENSE).
 
 <p align="center">
-  <img src="docs/assets/banners/project-info.svg" alt="Python 3.11+ · Six badge workflows · Rich + prompt_toolkit · MIT code license" width="1000">
+  <img src="docs/assets/banners/project-info.svg" alt="Python 3.11+ · Six badge workflows · Rich terminal UI · MIT code license" width="1000">
 </p>
 
 <p align="center">
@@ -163,9 +163,9 @@ In PowerShell, use `$env:GETIT_UNLOCK_PYTHON = 'C:\path\to\python.exe'`. For Git
 
 Startup displays the developer banner, educational-use notice, Python/library versions, configuration status, and helper requirements before the main dashboard. Local checks do not connect to GitHub. Missing settings offer **Start guided setup**, **Read setup requirements**, **Continue to the dashboard**, or **Exit**. Helpers are requested when a selected workflow needs one.
 
-Use **Up/Down**, **j/k**, or **Tab/Shift+Tab** to move; **Enter** selects; a menu number selects directly. **Esc**, **q**, or **0** goes back, and exits from the dashboard. **Ctrl+C** exits the complete session; **Ctrl+D** or **Ctrl+Z** exits at a menu prompt. Tokens use hidden input. Narrow terminals use a compact banner and stacked requirement cards.
+Type an option number such as **01** or **1**, then press **Enter**. An empty **Enter** selects the displayed default. **00**, **0**, or **q** goes back, and exits from the main menu. **Ctrl+C** exits the complete session; an EOF also exits (Linux/Termux: **Ctrl+D**; Windows: **Ctrl+Z**, then **Enter**). Tokens use hidden input. Wide terminals arrange menus in columns; narrow terminals stack choices and use a compact banner.
 
-Use `bash main.sh --plain` (Windows: `.\main.ps1 --plain`) for numbered menus without cursor control. Add `--no-animation` to keep static loading messages. `NO_COLOR` disables color. Redirected output is static, and `--json` commands retain clean JSON.
+Use `bash main.sh --plain` (Windows: `.\main.ps1 --plain`) to disable colors, screen clearing, and animations. Add `--no-animation` to keep static loading messages while retaining colors. `NO_COLOR` disables color. Redirected output is static, and `--json` commands retain clean JSON. Developer, star, and fork URLs remain visible on all terminals; terminals that support hyperlinks can also make them clickable.
 
 The exit screen shows your developer profile and clickable **Star**/**Fork** URLs, followed by **Thanks for using this tool, dont forget to star and fork**. Links open in terminals that support hyperlinks; the complete URLs can also be copied. No browser opens automatically and no stars/forks are submitted automatically.
 
@@ -331,7 +331,7 @@ Start the menu from the project folder:
 python main.py
 ```
 
-Use **Up/Down** to highlight an option and **Enter** to select it. You can also press its number. **Esc** goes back. Review screens default to **Keep as preview**; select **Run this workflow** when you want to execute.
+Type the displayed option number and press **Enter**. **00** goes back. Review screens default to **Keep as preview**; select **Run this workflow** when you want to execute.
 
 1. Check that the dashboard shows your repository in **username/repository** format.
 2. Select **Unlock an achievement**.

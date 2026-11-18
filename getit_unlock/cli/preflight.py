@@ -45,7 +45,7 @@ def startup_checks(config, env_file, state_dir):
     journal = state_dir / "progress.sqlite3"
     return [
         ("Runtime", "READY", f"Python {sys.version.split()[0]} / {platform_name()}"),
-        ("Terminal libraries", "READY", f"Rich {version('rich')} / prompt_toolkit {version('prompt_toolkit')}"),
+        ("Terminal libraries", "READY", f"Rich {version('rich')}"),
         ("Configuration", "FOUND" if env_file.exists() else "INFO", source),
         ("Primary token", "PRESENT" if config.token else "NEEDS SETUP",
          "Hidden; checked against GitHub only when you request a connection check or execution" if config.token
@@ -58,11 +58,12 @@ def startup_checks(config, env_file, state_dir):
 
 
 def show_startup(config, env_file, state_dir, console):
-    console.panel("STARTUP / local requirements", [
-        "These checks use local settings. Check connection validates GitHub access.",
-        "A helper is needed only for the workflows listed below.",
-    ])
-    console.table(["Requirement", "Status", "Details"], startup_checks(config, env_file, state_dir))
+    console.heading("STARTUP / local requirements")
+    for name, status, detail in startup_checks(config, env_file, state_dir):
+        color = "red" if status == "NEEDS SETUP" else "green" if status in {"READY", "PRESENT", "FOUND"} else "cyan"
+        console.notice(f"{name} : {status}", marker="!" if color == "red" else "+", color=color)
+        console.say("     " + detail, "muted")
+    console.say("Local settings only. Check connection validates GitHub access.", "muted")
     console.say("Solo: Pull Shark, Quickdraw. Helper: Pair Extraordinaire, YOLO, Galaxy Brain.", "muted")
     console.say("Starstruck tracks received stars; a helper star is optional.", "muted")
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from .. import PROJECT_NAME, __version__
 from .brand import DISCLAIMER, PROFILE_URL
 
-DEPENDENCIES = ("rich", "prompt_toolkit")
+DEPENDENCIES = ("rich",)
 
 
 def missing_dependencies():
@@ -30,11 +30,11 @@ def launch(argv=None):
         if os.name == "nt":
             executable = "'" + sys.executable.replace("'", "''") + "'"
             path = "'" + str(project / "requirements.txt").replace("'", "''") + "'"
-            packages = f"-r {path}" if (project / "requirements.txt").exists() else "'rich>=14.0,<16' 'prompt_toolkit>=3.0.48,<4'"
+            packages = f"-r {path}" if (project / "requirements.txt").exists() else "'rich>=14.0,<16'"
             command = f"& {executable} -m pip install --no-cache-dir {packages}"
         else:
             packages = (f"-r {shlex.quote(str(project / 'requirements.txt'))}" if (project / "requirements.txt").exists()
-                        else "'rich>=14.0,<16' 'prompt_toolkit>=3.0.48,<4'")
+                        else "'rich>=14.0,<16'")
             command = f"{shlex.quote(sys.executable)} -m pip install --no-cache-dir {packages}"
         print("\n  " + command, file=sys.stderr)
         print("\n  Linux: use a project virtual environment if system Python is externally managed.", file=sys.stderr)

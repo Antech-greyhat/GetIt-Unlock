@@ -1,4 +1,4 @@
-"""Rich presentation and prompt_toolkit menus, with accessible plain output."""
+"""ASCII artwork, bracketed numbered menus, and accessible Rich output."""
 import math
 import os
 import re
@@ -7,23 +7,15 @@ import time
 from contextvars import ContextVar
 from dataclasses import dataclass
 
-from prompt_toolkit.application import Application
-from prompt_toolkit.formatted_text import FormattedText
-from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import HSplit, Layout, ScrollOffsets, Window
-from prompt_toolkit.layout.controls import FormattedTextControl
-from prompt_toolkit.layout.dimension import Dimension
-from prompt_toolkit.styles import Style
-from prompt_toolkit.utils import get_cwidth
 from rich import box
 from rich.console import Console as RichConsole
-from rich.panel import Panel
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
 from rich.text import Text
 from rich.table import Table
 
 from .. import PROJECT_NAME, __version__
-from .brand import COMPACT_MARK, DEVELOPER, DISCLAIMER, FAREWELL, FORK_URL, PROFILE_URL, REPOSITORY_URL, WORDMARK
+from .brand import (COMPACT_MARK, DEVELOPER, DISCLAIMER, FAREWELL, FORK_URL,
+                    PROFILE_URL, REPOSITORY_URL, TINY_MARK, WORDMARK)
 
 
 @dataclass(frozen=True)
@@ -36,7 +28,6 @@ UI_OPTIONS = ContextVar("getit_ui_options", default=UIOptions())
 
 
 def enable_terminal():
-    # Rich and prompt_toolkit handle Windows console modes and terminal restoration.
     return sys.stdout.isatty() and os.getenv("TERM") != "dumb"
 
 
@@ -55,8 +46,8 @@ class Choice:
 
 
 class Console:
-    COLORS = {"cyan": "bright_cyan", "gold": "bright_yellow", "green": "bright_green",
-              "red": "bright_red", "muted": "dim", "bold": "bold"}
+    COLORS = {"cyan": "cyan", "gold": "yellow", "green": "green",
+              "red": "red", "blue": "blue", "muted": "dim", "bold": "bold"}
 
     def __init__(self):
         options = UI_OPTIONS.get()
@@ -73,17 +64,42 @@ class Console:
     def say(self, text="", color=None):
         self.rich.print(Text(clean(text), style=self.COLORS.get(color, "")))
 
+    def bracket(self, label, color="red"):
+        text = Text("[", style=self.COLORS[color])
+        text.append(clean(label), style="white")
+        text.append("]", style=self.COLORS[color])
+        return text
+
+    def notice(self, text, *, marker="+", color="green"):
+        line = Text(" ")
+        line.append_text(self.bracket(marker, color))
+        line.append(" " + clean(text), style=self.COLORS.get(color, "cyan"))
+        self.rich.print(line, overflow="fold")
+
+    def heading(self, title):
+        self.say()
+        text = Text(" ")
+        text.append_text(self.bracket("::"))
+        text.append(" " + clean(title) + " ", style="bold yellow")
+        text.append_text(self.bracket("::"))
+        self.rich.print(text, overflow="fold")
+        self.say()
+
+    def clear(self):
+        if self.terminal and sys.stdin.isatty():
+            self.rich.clear()
+
     def link(self, label, url):
-        text = Text(clean(label) + ": ")
-        text.append(url, style=f"bright_cyan link {url}")
+        text = Text(" ")
+        text.append_text(self.bracket("-", "green"))
+        text.append(" " + clean(label) + ": ", style="cyan")
+        text.append(url, style=f"cyan link {url}")
         self.rich.print(text, overflow="fold")
 
     def panel(self, title, lines=(), color="cyan"):
-        content = Text("\n".join(clean(line) for line in lines))
-        self.rich.print(Panel(content, title=Text(clean(title), style="bold"),
-                              border_style=self.COLORS.get(color, "cyan"),
-                              box=box.ROUNDED if self.terminal else box.ASCII,
-                              width=self.width, padding=(1, 2)))
+        self.heading(title)
+        for line in lines:
+            self.say(" " + clean(line), color)
 
     def table(self, headers, rows):
         rows = [[clean(value) for value in row] for row in rows]
@@ -101,20 +117,35 @@ class Console:
 
     def masthead(self, *, disclaimer=False):
         self.say()
-        mark = WORDMARK if self.width >= 66 else COMPACT_MARK
-        self.rich.print(Text(mark, style="bold bright_yellow"))
-        self.say(f"  {PROJECT_NAME} / v{__version__} / Linux · Windows · Termux", "muted")
-        self.link(f"Developer / {DEVELOPER}", PROFILE_URL)
+        if self.width >= max(map(len, WORDMARK.splitlines())):
+            mark, style = WORDMARK, "bold yellow"
+        elif self.width >= max(map(len, COMPACT_MARK.splitlines())):
+            mark, style = COMPACT_MARK, "bold blue"
+        else:
+            mark, style = TINY_MARK, "bold blue"
+        self.rich.print(Text(mark.rstrip("\n"), style=style), overflow="fold")
+        version = Text(" " * max(1, min(self.width, max(map(len, mark.splitlines()))) - 18))
+        version.append("Version : ", style="red")
+        version.append(__version__, style="yellow")
+        self.rich.print(version)
+        self.say()
+        self.link(f"Tool created by {DEVELOPER}", PROFILE_URL)
+        if mark != WORDMARK:
+            self.say("     " + PROJECT_NAME.upper(), "muted")
         if disclaimer:
             self.panel("EDUCATIONAL USE", [DISCLAIMER], "gold")
 
     def banner(self, repo="", completed=0, pending=0, configured=False):
-        self.panel("DASHBOARD", [repo or "Repository: setup needed",
-                   f"Primary token: {'present; run Check connection to verify' if configured else 'missing'}",
-                   f"Completed: {completed}   |   To inspect: {pending}",
-                   "Preview a workflow, check its requirements, then choose whether to run it."])
+        self.clear()
+        self.masthead()
+        self.say()
+        self.notice("Repository : " + (repo or "setup needed"), color="cyan")
+        self.notice("Primary token : " + ("configured; check connection to verify" if configured else "missing"),
+                    marker="+" if configured else "!", color="green" if configured else "red")
+        self.notice(f"Completed : {completed}  /  To inspect : {pending}", color="cyan")
 
     def goodbye(self):
+        self.clear()
         self.masthead()
         self.link("Star", REPOSITORY_URL)
         self.link("Fork", FORK_URL)
@@ -124,121 +155,62 @@ class Console:
     def choose(self, title, choices, *, default=0):
         if not choices or not 0 <= default < len(choices):
             raise ValueError("A menu needs choices and a valid default.")
-        self.say()
-        self.say(title, "bold")
-        if not self.terminal or not sys.stdin.isatty():
-            for i, choice in enumerate(choices, 1):
-                self.say(f"  {i}. {choice.label}" + (f" / {choice.detail}" if choice.detail else ""))
-            while True:
-                value = input(f"Select [1-{len(choices)}, Enter={default + 1}, 0=back]: ").strip().lower()
-                if value in {"0", "q", "back"}:
-                    return "back"
-                if not value:
-                    return choices[default].value
-                if value.isdigit() and 1 <= int(value) <= len(choices):
-                    return choices[int(value) - 1].value
-                self.say("Choose a number from the menu.", "gold")
-        return self.menu_application(choices, default=default).run()
+        self.heading(title)
+        numbered = [(index, choice) for index, choice in enumerate(choices, 1) if choice.value != "back"]
+        back_label = next((choice.label for choice in choices if choice.value == "back"), "Back")
 
-    def menu_application(self, choices, *, default=0, input=None, output=None):
-        """Inline scrollable menu; injected streams support actual keyboard tests."""
-        selected = [default]
-        bindings = KeyBindings()
+        def option(index, choice):
+            text = Text(" ")
+            text.append_text(self.bracket(f"{index:02}"))
+            text.append(" " + clean(choice.label), style="yellow")
+            return text
 
-        @bindings.add("up")
-        @bindings.add("k")
-        @bindings.add("s-tab")
-        def previous(event):
-            selected[0] = (selected[0] - 1) % len(choices)
-
-        @bindings.add("down")
-        @bindings.add("j")
-        @bindings.add("tab")
-        def following(event):
-            selected[0] = (selected[0] + 1) % len(choices)
-
-        @bindings.add("home")
-        def first(event):
-            selected[0] = 0
-
-        @bindings.add("end")
-        def last(event):
-            selected[0] = len(choices) - 1
-
-        @bindings.add("enter")
-        def accept(event):
-            event.app.exit(result=choices[selected[0]].value)
-
-        @bindings.add("escape")
-        @bindings.add("q")
-        @bindings.add("0")
-        def back(event):
-            event.app.exit(result="back")
-
-        @bindings.add("c-c")
-        def interrupt(event):
-            event.app.exit(exception=KeyboardInterrupt())
-
-        @bindings.add("c-d")
-        @bindings.add("c-z")
-        def eof(event):
-            event.app.exit(exception=EOFError())
-
-        for index in range(min(9, len(choices))):
-            def numbered(event, index=index):
-                event.app.exit(result=choices[index].value)
-            bindings.add(str(index + 1))(numbered)
-
-        def render():
-            fragments = []
-            for index, choice in enumerate(choices):
-                active = index == selected[0]
-                if active:
-                    fragments.append(("[SetCursorPosition]", ""))
-                style = "class:selected" if active else "class:choice"
-                fragments.append((style, f" {'>' if active else ' '} {index + 1:>2}  {clean(choice.label)}\n"))
+        cell_width = max((option(index, choice).cell_len for index, choice in numbered), default=1)
+        columns = min(3, (self.width + 3) // (cell_width + 3)) if len(numbered) >= 6 else 1
+        if columns > 1:
+            menu = Table.grid(padding=(0, 3))
+            for _ in range(columns):
+                menu.add_column(width=cell_width)
+            rows = math.ceil(len(numbered) / columns)
+            for row in range(rows):
+                cells = [option(*numbered[index]) if index < len(numbered) else Text("")
+                         for index in (row + column * rows for column in range(columns))]
+                menu.add_row(*cells)
+            self.rich.print(menu)
+        else:
+            for index, choice in numbered:
+                self.rich.print(option(index, choice), overflow="fold")
                 if choice.detail:
-                    fragments.append(("class:detail", f"        {clean(choice.detail)}\n"))
-            return FormattedText(fragments)
+                    self.say("      " + clean(choice.detail), "muted")
+        self.say()
+        self.rich.print(option(0, Choice("back", back_label)))
+        default_number = default + 1 if choices[default].value != "back" else 0
+        self.say(f" Enter = {default_number:02} / Ctrl+C = exit", "muted")
+        selections = {str(index): choice.value for index, choice in numbered}
+        selections["0"] = "back"
+        while True:
+            value = self.read("Select an option").strip().lower()
+            if value in {"0", "00", "q", "back", "\x1b"}:
+                return "back"
+            if not value:
+                return choices[default].value
+            if value.isascii() and value.isdigit():
+                selected = selections.get(value.lstrip("0") or "0")
+                if selected is not None:
+                    return selected
+            self.notice("Invalid option. Choose a number from the menu.", marker="!", color="red")
 
-        style = Style.from_dict({"selected": "bold bg:#164e63 #67e8f9", "choice": "#e2e8f0",
-                                 "detail": "#94a3b8", "hint": "#fbbf24"}) if self.color else Style([])
-        control = FormattedTextControl(render, focusable=True, show_cursor=False)
-
-        def wrapped_rows(text):
-            width = max(1, output.get_size().columns if output else self.rich.size.width)
-            return max(1, math.ceil(get_cwidth(text) / width))
-
-        def menu_height():
-            rows = sum(wrapped_rows("       " + clean(choice.label))
-                       + (wrapped_rows("        " + clean(choice.detail)) if choice.detail else 0)
-                       for choice in choices)
-            return Dimension(min=1, preferred=rows, max=rows)
-
-        def detail_rows():
-            detail = choices[selected[0]].detail
-            return wrapped_rows("        " + clean(detail)) if detail else 0
-
-        window = Window(control, wrap_lines=True, always_hide_cursor=True, dont_extend_height=True,
-                        height=menu_height, scroll_offsets=ScrollOffsets(bottom=detail_rows))
-        hint_text = " Arrows / number / Enter | 0/Esc back | Ctrl+C exit"
-
-        def hint_height():
-            rows = wrapped_rows(hint_text)
-            return Dimension(min=1, preferred=rows, max=rows)
-
-        hint = Window(FormattedTextControl(FormattedText([
-            ("class:hint", hint_text)
-        ])), wrap_lines=True, dont_extend_height=True,
-            height=hint_height)
-        return Application(layout=Layout(HSplit([window, hint]), focused_element=window), key_bindings=bindings, style=style,
-                           full_screen=False, input=input, output=output,
-                           erase_when_done=True, min_redraw_interval=0.05)
+    def read(self, label):
+        prompt = Text(" ")
+        prompt.append_text(self.bracket("-"))
+        prompt.append(" " + clean(label) + " : ", style="green")
+        self.rich.print(prompt, end="")
+        return input()
 
     def ask(self, label, default="", *, required=False, validator=None):
         while True:
             suffix = f" [{clean(default)}]" if default else ""
-            value = input(f"  {clean(label)}{suffix}: ").strip() or default
+            value = self.read(clean(label) + suffix).strip() or default
             if required and not value:
                 self.say("This field is required.", "gold")
                 continue
@@ -251,7 +223,8 @@ class Console:
             return value
 
     def pause(self):
-        input("\n  Press Enter to return to your dashboard...")
+        self.say()
+        self.read("Press Enter to return to the main menu")
 
     def activity(self, message):
         return Activity(self, message)
@@ -274,7 +247,7 @@ class Activity:
         if self.status:
             self.status.update(Text(self.message, style="bright_cyan"))
         else:
-            self.console.say("  > " + self.message, "muted")
+            self.console.notice(self.message, marker="-", color="cyan")
 
     def __enter__(self):
         self.started = time.monotonic()
@@ -283,12 +256,12 @@ class Activity:
                                                   spinner="line", refresh_per_second=8)
             self.status.start()
         else:
-            self.console.say("  > " + self.message, "muted")
+            self.console.notice(self.message, marker="-", color="cyan")
         return self
 
     def __exit__(self, exc_type, exc, tb):
         if self.status:
             self.status.stop()
         elapsed = time.monotonic() - self.started
-        self.console.say(f"  {'OK' if exc_type is None else 'STOPPED'} / {self.message} / {elapsed:.1f}s",
-                         "green" if exc_type is None else "gold")
+        self.console.notice(f"{'OK' if exc_type is None else 'STOPPED'} / {self.message} / {elapsed:.1f}s",
+                            marker="+" if exc_type is None else "!", color="green" if exc_type is None else "red")
