@@ -9,7 +9,7 @@ description = "GetIt-Unlock: a Python CLI for GitHub achievement workflows"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["rich>=14.0,<16", "prompt_toolkit>=3.0.48,<4"]
+dependencies = ["rich>=14.0,<16"]
 
 [project.scripts]
 getit-unlock = "getit_unlock.cli:main"

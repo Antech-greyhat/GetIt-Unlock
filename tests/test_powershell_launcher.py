@@ -45,7 +45,10 @@ class PowerShellLauncherTests(unittest.TestCase):
         args = ("--env-file", "settings with spaces/.env", "--pr-title", "Keep {repo} progress $together", "--plain")
         result = self.invoke(*args)
         self.assertEqual(result.returncode, 37, result.stderr)
-        self.assertEqual(json.loads(result.stdout), {"args": list(args), "cwd": str(self.directory)})
+        observed = json.loads(result.stdout)
+        self.assertEqual(observed["args"], list(args))
+        # Windows may expand the runner's short path (RUNNER~1) to runneradmin.
+        self.assertTrue(self.directory.samefile(observed["cwd"]))
 
     def test_source_catalog_matches_python(self):
         result = self.invoke("list", "--json", script=PROJECT / "main.ps1")
