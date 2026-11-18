@@ -39,4 +39,5 @@ else
 fi
 
 # Keep the caller's working directory for .env and saved state, as main.py does.
-exec "${python_command[@]}" "$project_dir/main.py" "$@"
+export PYTHONDONTWRITEBYTECODE=1
+exec "${python_command[@]}" -B "$project_dir/main.py" "$@"

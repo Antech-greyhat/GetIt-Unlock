@@ -1,9 +1,12 @@
 import argparse
 import json
 import math
+import signal
 import sqlite3
 import sys
+import threading
 import time
+from contextvars import ContextVar
 from dataclasses import replace
 from pathlib import Path
 
@@ -15,7 +18,8 @@ from ..core.state import RunLock, StateStore
 from ..workflows.runner import WorkflowRunner
 from ..github.badges import check_badges
 from .onboarding import ensure_credentials, helper_credentials, save_config, setup
-from .ui import Choice, Console
+from .ui import Choice, Console, UIOptions, UI_OPTIONS
+from .preflight import setup_guide, show_startup, show_workflow_requirements, startup_checks
 from ..workflows.cleanup import cleanup_tracked
 from ..messages.templates import (MESSAGE_FILES, MESSAGE_LABELS, PR_WORKFLOWS, PREVIEW_OPERATION,
                                  message_directory, render_messages, validate_message_templates)
@@ -39,6 +43,10 @@ def common_arguments(parser):
     parser.add_argument("--env-file", type=Path, default=argparse.SUPPRESS, help="Configuration file (default: .env)")
     parser.add_argument("--state-dir", type=Path, default=argparse.SUPPRESS, help="Local journal directory (default: .achievement-state)")
     parser.add_argument("--repo", default=argparse.SUPPRESS, help="Target personal repository: OWNER/REPO")
+    parser.add_argument("--plain", action="store_true", default=argparse.SUPPRESS,
+                        help="Use numbered menus and plain terminal output")
+    parser.add_argument("--no-animation", action="store_true", default=argparse.SUPPRESS,
+                        help="Disable loading animations")
 
 
 def badge_wait(value):
@@ -59,6 +67,7 @@ def build_parser():
     definitions = (
         ("list", "List achievements and community-reported tier thresholds"),
         ("setup", "Configure tokens and repository interactively"),
+        ("requirements", "Show local requirements and setup guidance without network access"),
         ("doctor", "Check authentication and repository access without changing GitHub"),
         ("status", "Show the local operation journal; no network access"),
         ("verify", "Check which badges are visible on your public GitHub profile"),
@@ -72,6 +81,7 @@ def build_parser():
         common_arguments(sub)
         commands[name] = sub
     commands["list"].add_argument("--json", action="store_true")
+    commands["requirements"].add_argument("--json", action="store_true")
     commands["setup"].add_argument("--workflow", choices=ACHIEVEMENTS, help="Also configure the selected workflow's helper account")
     commands["doctor"].add_argument("--workflow", choices=ACHIEVEMENTS)
     commands["doctor"].add_argument("--json", action="store_true")
@@ -115,13 +125,7 @@ def build_parser():
 
 
 def table(headers, rows):
-    console = Console()
-    rows = [[str(value) for value in row] for row in rows]
-    widths = [max([len(header), *(len(row[i]) for row in rows)]) for i, header in enumerate(headers)]
-    console.say("  ".join(header.ljust(width) for header, width in zip(headers, widths)), "cyan")
-    console.say("  ".join("-" * width for width in widths), "muted")
-    for row in rows:
-        print("  ".join(value.ljust(width) for value, width in zip(row, widths)))
+    Console().table(headers, rows)
 
 
 def list_achievements(as_json=False):
@@ -344,6 +348,8 @@ def run_wizard(env_file, state_dir, repo=None):
     if workflow == "back":
         return 0
     achievement = ACHIEVEMENTS[workflow]
+    config = Config.load(env_file, repo=repo)
+    show_workflow_requirements(workflow, config, console)
     choices = [Choice(tier, tier.title(), f"{achievement.thresholds[index]} "
                       + ("received stars" if workflow == "starstruck" else "total recorded successes"))
                for tier, index in TIERS.items() if index < len(achievement.thresholds)]
@@ -368,19 +374,21 @@ def run_wizard(env_file, state_dir, repo=None):
             return 0
         if star_action == "helper":
             amount.append("--star-with-helper")
-    config = Config.load(env_file, repo=repo)
     if not config.repo:
-        config = setup(config, env_file, None if workflow == "starstruck" else workflow)
+        # A preview remains available without asking for tokens or creating a repository.
+        from ..core.config import validate_repo
+        config = replace(config, repo=console.ask("Repository for this plan (OWNER/REPO)",
+                                                 required=True, validator=validate_repo))
     common = ["--env-file", str(env_file), "--state-dir", str(state_dir), "--repo", config.repo]
     command = common + ["run", workflow, *amount]
     preview = build_parser().parse_args(command)
     show_plan(preview, config)
-    action = console.choose("03 / Ready when you are", [
+    action = console.choose("03 / REVIEW AND CHOOSE", [
         Choice("execute", "Run this workflow", "Check received stars and badge visibility" if workflow == "starstruck"
                else "Use the predefined messages and verify the workflow"),
         Choice("preview", "Keep as preview", "No GitHub changes"),
         Choice("back", "Back"),
-    ])
+    ], default=1)
     if action == "execute":
         return main(command + ["--execute"])
     console.say("Preview only. Your plan has not been executed.", "muted")
@@ -392,6 +400,38 @@ def interactive(env_file, state_dir, repo):
         build_parser().print_help()
         return 0
     console = Console()
+    console.masthead(disclaimer=True)
+    with console.activity("Inspecting local requirements"):
+        config = Config.load(env_file, repo=repo)
+        startup_checks(config, env_file, state_dir)
+    show_startup(config, env_file, state_dir, console)
+    try:
+        config.validate(credentials=True)
+        needs_setup = False
+    except ValueError:
+        needs_setup = True
+    while needs_setup:
+        action = console.choose("STARTUP / CHOOSE YOUR NEXT STEP", [
+            Choice("setup", "Start guided setup", "Connect your primary account and repository"),
+            Choice("guide", "Read setup requirements", "Token links and helper-account guidance"),
+            Choice("browse", "Continue to the dashboard", "Browse, preview, or inspect saved progress"),
+            Choice("back", "Exit"),
+        ])
+        if action == "back":
+            return 0
+        if action == "browse":
+            break
+        if action == "guide":
+            setup_guide(console)
+            continue
+        try:
+            setup(config, env_file)
+            # Reload to reflect any shell overrides rather than displaying saved values as active.
+            config = Config.load(env_file, repo=repo)
+            config.validate(credentials=True)
+            needs_setup = False
+        except (ValueError, GitHubError, OSError) as exc:
+            console.say(config.redact(str(exc)), "gold")
     common = ["--env-file", str(env_file), "--state-dir", str(state_dir)]
     if repo:
         common.extend(["--repo", repo])
@@ -410,8 +450,8 @@ def interactive(env_file, state_dir, repo):
             Choice("status", "Your progress", "Completed operations and anything to inspect"),
             Choice("list", "Browse achievements", "Requirements and tiers"),
             Choice("setup", "Connect or create a repository", "Account and repository setup"),
-            Choice("doctor", "Check connection", "Validate account and repository access"),
-            Choice("reset-history", "Preview history reset", "Preserve files and a backup branch"),
+            Choice("doctor", "Check connection", "Validate prerequisites for your chosen workflow"),
+            Choice("requirements", "Requirements and advanced tools", "Setup guide and history-reset preview"),
             Choice("cleanup", "Clean up merged branches", "Preview leftover workflow branches"),
             Choice("back", "Exit"),
         ])
@@ -440,17 +480,33 @@ def interactive(env_file, state_dir, repo):
             ])
             if section != "back":
                 main(common + ["setup"] + ([] if section == "primary" else ["--workflow", section]))
+        elif choice == "doctor":
+            workflow = console.choose("CHECK CONNECTION / REQUIREMENTS", [
+                Choice("general", "Primary account and repository", "Read-only connection check"),
+                *[Choice(a.slug, a.name, "Check this workflow's prerequisites") for a in ACHIEVEMENTS.values()],
+                Choice("back", "Back"),
+            ])
+            if workflow == "back":
+                continue
+            main(common + ["doctor"] + ([] if workflow == "general" else ["--workflow", workflow]))
+        elif choice == "requirements":
+            section = console.choose("REQUIREMENTS AND ADVANCED TOOLS", [
+                Choice("requirements", "Local requirements and setup guide"),
+                Choice("reset-history", "Preview history reset", "Preserve files and create a backup if executed"),
+                Choice("back", "Back"),
+            ])
+            if section == "back":
+                continue
+            main(common + [section])
         elif choice == "verify" and not config.repo:
             account = console.ask("GitHub username", required=True)
             main(common + ["verify", "--account", account])
         else:
             main(common + [choice])
-        input("\n  Press Enter to return to your dashboard...")
+        console.pause()
 
 
-def main(argv=None):
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def _dispatch(args):
     env_file = getattr(args, "env_file", Path(".env"))
     state_dir = getattr(args, "state_dir", Path(".achievement-state"))
     repo = getattr(args, "repo", None)
@@ -464,6 +520,13 @@ def main(argv=None):
         config = Config.load(env_file, repo=repo)
         if args.command == "setup":
             setup(config, env_file, args.workflow)
+        elif args.command == "requirements":
+            if args.json:
+                print(json.dumps([dict(zip(("requirement", "status", "detail"), row))
+                                  for row in startup_checks(config, env_file, state_dir)], indent=2))
+            else:
+                show_startup(config, env_file, state_dir, Console())
+                setup_guide(Console())
         elif args.command == "status":
             show_status(args, config, state_dir)
         elif args.command == "verify":
@@ -474,7 +537,15 @@ def main(argv=None):
             if not args.json:
                 config = ensure_credentials(config, env_file, args.workflow, allow_create=False)
             config.validate(args.workflow, credentials=True)
-            info = make_runner(config).preflight(args.workflow)
+            runner = make_runner(config)
+            if args.json:
+                info = runner.preflight(args.workflow)
+            else:
+                if args.workflow:
+                    show_workflow_requirements(args.workflow, config, Console())
+                with Console().activity("Checking GitHub connection and repository prerequisites") as activity:
+                    runner.report = activity.update
+                    info = runner.preflight(args.workflow)
             print(json.dumps(info, indent=2) if args.json else
                   f"Connected as {info['account']} to {info['repo']}. Default branch: {info['default_branch']}.")
             if not args.json:
@@ -522,6 +593,48 @@ def main(argv=None):
     except (ValueError, GitHubError, OSError, sqlite3.Error) as exc:
         print("Error: " + config.redact(str(exc)), file=sys.stderr)
         return 1
-    except (KeyboardInterrupt, EOFError):
-        print("\nStopped. Any started operation is recorded in the local journal.", file=sys.stderr)
-        return 130
+
+
+_SESSION_DEPTH = ContextVar("getit_session_depth", default=0)
+
+
+class Terminated(KeyboardInterrupt):
+    """A termination request follows the same journal and terminal cleanup path."""
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    depth = _SESSION_DEPTH.get()
+    depth_token = _SESSION_DEPTH.set(depth + 1)
+    previous_options = UI_OPTIONS.get()
+    options_token = UI_OPTIONS.set(UIOptions(getattr(args, "plain", previous_options.plain),
+                                            getattr(args, "no_animation", previous_options.no_animation)))
+    machine_output = getattr(args, "json", False)
+    human_session = (args.command is None or args.command == "setup"
+                     or (args.command == "run" and args.achievement is None))
+    farewell = depth == 0 and sys.stdin.isatty() and human_session and not machine_output
+    previous_handler = None
+    handles_signal = depth == 0 and threading.current_thread() is threading.main_thread()
+    if handles_signal:
+        previous_handler = signal.getsignal(signal.SIGTERM)
+        def terminate(signum, frame):
+            raise Terminated()
+        signal.signal(signal.SIGTERM, terminate)
+    try:
+        return _dispatch(args)
+    except (KeyboardInterrupt, EOFError) as exc:
+        if depth:
+            raise  # Exit the entire session, including nested workflows and prompts.
+        farewell = sys.stdin.isatty() and not machine_output
+        print("\nStopped. Any started operation is recorded in the local journal. Inspect status --history before retrying.",
+              file=sys.stderr)
+        return 143 if isinstance(exc, Terminated) else 130
+    finally:
+        if handles_signal:
+            signal.signal(signal.SIGTERM, previous_handler)
+        try:
+            if farewell:
+                Console().goodbye()
+        finally:
+            UI_OPTIONS.reset(options_token)
+            _SESSION_DEPTH.reset(depth_token)

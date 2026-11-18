@@ -106,12 +106,14 @@ def setup(config, path, workflow=None):
     if not sys.stdin.isatty():
         raise ValueError("Setup needs an interactive terminal. Copy .env.example to .env or use environment variables.")
     console = Console()
-    console.panel("CONNECT / GitHub", ["Tokens are hidden while you type and saved in your local .env.",
+    console.panel("01 / CONNECT YOUR PRIMARY ACCOUNT", ["Tokens are hidden while you type and saved in your local .env.",
+                                        "Use the account that owns your target repository.",
                                         "Setup asks for a helper only when your selected workflow needs one."])
+    console.link("Create a GitHub token", "https://github.com/settings/tokens")
     token = secret("Primary GitHub token", config.token)
     choices = [Choice("existing", "Use an existing repository", config.repo or "OWNER/REPO"),
                Choice("create", "Create a repository", "An initialized repository on your account")]
-    source = console.choose("Your repository", choices, default=0 if config.repo else 1)
+    source = console.choose("02 / CHOOSE YOUR REPOSITORY", choices)
     if source == "back":
         raise ValueError("Setup cancelled.")
     repo = (create_repository(token, console) if source == "create"

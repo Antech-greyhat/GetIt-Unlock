@@ -6,6 +6,8 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 from urllib.error import URLError
+from prompt_toolkit.input import create_pipe_input
+from prompt_toolkit.output import DummyOutput
 
 from getit_unlock.github.badges import check_badges, fetch_profile
 from getit_unlock.cli.commands import main, run_wizard
@@ -192,21 +194,22 @@ class OnboardingTests(unittest.TestCase):
 class MenuTests(unittest.TestCase):
     def test_keyboard_navigation_returns_choice_and_restores_cursor(self):
         console = Console()
-        console.terminal, console.color = True, False
-        output = io.StringIO()
-        with patch("sys.stdin.isatty", return_value=True), patch("getit_unlock.cli.ui.read_key", side_effect=["down", "enter"]), redirect_stdout(output):
-            result = console.choose("Choose", [Choice("a", "One"), Choice("b", "Two")])
+        output = CursorOutput()
+        with create_pipe_input() as keyboard:
+            keyboard.send_text("\x1b[B\r")
+            result = console.menu_application([Choice("a", "One"), Choice("b", "Two")],
+                                              input=keyboard, output=output).run()
         self.assertEqual(result, "b")
-        self.assertTrue(output.getvalue().endswith("\033[?25h"))
+        self.assertEqual(output.cursor_events[-1], "show")
 
     def test_interrupt_restores_cursor(self):
         console = Console()
-        console.terminal = True
-        output = io.StringIO()
-        with patch("sys.stdin.isatty", return_value=True), patch("getit_unlock.cli.ui.read_key", side_effect=KeyboardInterrupt), redirect_stdout(output):
+        output = CursorOutput()
+        with create_pipe_input() as keyboard:
+            keyboard.send_text("\x03")
             with self.assertRaises(KeyboardInterrupt):
-                console.choose("Choose", [Choice("a", "One")])
-        self.assertTrue(output.getvalue().endswith("\033[?25h"))
+                console.menu_application([Choice("a", "One")], input=keyboard, output=output).run()
+        self.assertEqual(output.cursor_events[-1], "show")
 
     def test_plain_menu_reprompts_on_invalid_choice(self):
         console = Console()
@@ -216,7 +219,8 @@ class MenuTests(unittest.TestCase):
 
     def test_no_color_and_remote_control_sequences(self):
         with patch.dict("os.environ", {"NO_COLOR": "1"}), patch("getit_unlock.cli.ui.enable_terminal", return_value=True):
-            self.assertEqual(Console().paint("test", "cyan"), "test")
+            console = Console()
+            self.assertFalse(console.color)
         self.assertEqual(clean("name\033[2J\r\nnext"), "name  next")
 
     def test_verify_json_is_clean_and_pending_is_exit_three(self):
@@ -226,6 +230,17 @@ class MenuTests(unittest.TestCase):
             code = main(["verify", "--account", "alice", "--achievement", "quickdraw", "--json"])
         self.assertEqual(code, 3)
         self.assertEqual(json.loads(output.getvalue()), report)
+
+
+class CursorOutput(DummyOutput):
+    def __init__(self):
+        self.cursor_events = []
+
+    def show_cursor(self):
+        self.cursor_events.append("show")
+
+    def hide_cursor(self):
+        self.cursor_events.append("hide")
 
 
 if __name__ == "__main__":

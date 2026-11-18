@@ -4,15 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "GetIt-Unlock"
-version = "0.2.0"
+version = "0.3.0"
 description = "GetIt-Unlock: a Python CLI for GitHub achievement workflows"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = []
+dependencies = ["rich>=14.0,<16", "prompt_toolkit>=3.0.48,<4"]
 
 [project.scripts]
 getit-unlock = "getit_unlock.cli:main"
+
+[tool.setuptools]
+include-package-data = false
 
 [tool.setuptools.packages.find]
 include = ["getit_unlock*"]

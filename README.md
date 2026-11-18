@@ -4,10 +4,12 @@
 
 # GetIt-Unlock
 
-Run and verify six GitHub achievement workflows from an interactive menu or a command. The app creates PRs, issues, or discussions, tracks received stars in a personal repository you own, and saves its progress between runs.
+Run and verify six GitHub achievement workflows from a Rich terminal dashboard or a command. Numbered selections and prompt_toolkit keyboard menus work across Linux, Windows, and Termux. Startup explains missing configuration, guided setup connects your accounts, and previews show each workflow before execution.
+
+Developed by **[Antech-greyhat](https://github.com/Antech-greyhat)**. For educational purposes; users are responsible for their actions and the developer is not responsible for abuse or misuse. Read the [educational-use notice](DISCLAIMER.md). The code retains its [MIT license](LICENSE).
 
 <p align="center">
-  <img src="docs/assets/banners/project-info.svg" alt="Python 3.11+ · Six badge workflows · No extra Python packages · MIT code license" width="1000">
+  <img src="docs/assets/banners/project-info.svg" alt="Python 3.11+ · Six badge workflows · Rich + prompt_toolkit · MIT code license" width="1000">
 </p>
 
 <p align="center">
@@ -22,7 +24,7 @@ Run and verify six GitHub achievement workflows from an interactive menu or a co
 **Badge guides:** [Pull Shark](#pull-shark) · [Pair Extraordinaire](#pair-extraordinaire) · [Quickdraw](#quickdraw) · [YOLO](#yolo) · [Galaxy Brain](#galaxy-brain) · [Starstruck](#starstruck)
 
 > [!TIP]
-> **Choose [how to run on your operating system](#run-on-your-operating-system), then follow the numbered steps.** If you have not downloaded the app, use [Get the app](#get-the-app) first. Both launchers need Python 3.11 or newer; no extra Python packages are required.
+> **Choose [how to run on your operating system](#run-on-your-operating-system), then follow the numbered steps.** If you have not downloaded the app, use [Get the app](#get-the-app) first. Install Python 3.11+ and the packages in `requirements.txt` once. Launch with Bash on Linux/Termux or PowerShell on Windows; both use the same Python CLI.
 
 ## Find your next step
 
@@ -41,34 +43,36 @@ Run and verify six GitHub achievement workflows from an interactive menu or a co
 
 ## Run on your operating system
 
-Run commands inside the downloaded project folder. Bash launches the same Python CLI, with the same commands, interactive menu, `.env` settings, and saved progress.
+Run commands inside the downloaded project folder. Bash, PowerShell, and Python share the same commands, interactive menu, `.env` settings, and saved progress. The launchers select a compatible project `.venv` automatically and avoid Python bytecode caches.
 
 | Operating system | Default launcher | Optional launcher |
 | --- | --- | --- |
-| Windows | `python main.py` in PowerShell or Command Prompt | `bash main.sh` in Git Bash or WSL |
-| Linux | `bash main.sh` | `python3 main.py` |
+| Windows | `.\main.ps1` in PowerShell | `.venv\Scripts\python main.py`; `bash main.sh` in Git Bash or WSL |
+| Linux | `bash main.sh` | `.venv/bin/python main.py` |
 | Android / Termux | `bash main.sh` | `python main.py` |
-| macOS | `bash main.sh` | `python3 main.py` |
+| macOS | `bash main.sh` | `.venv/bin/python main.py` |
 
-The badge examples below use `python main.py`. On Linux, Termux, or any Bash shell, replace that prefix with `bash main.sh` and keep every argument. For example, `python main.py run pull-shark --tier base --execute` becomes `bash main.sh run pull-shark --tier base --execute`.
+The badge examples below use `python main.py`. Replace that prefix with `.\main.ps1` on Windows or `bash main.sh` on Linux/Termux, keeping every argument. For direct Python, use the interpreter where you installed the requirements, such as `.venv\Scripts\python` or `.venv/bin/python`.
 
-### Windows: Python by default
+### Windows: PowerShell
 
-Install [Python 3.11 or newer](https://www.python.org/downloads/windows/) and enable **Add Python to PATH** in the installer. Open PowerShell or Command Prompt in the project folder:
+Install [Python 3.11 or newer](https://www.python.org/downloads/windows/) and enable **Add Python to PATH** in the installer. Open PowerShell in the project folder and install the terminal libraries:
 
 ```powershell
 python --version
-python main.py --help
+python -m venv .venv
+.venv\Scripts\python -m pip install --no-cache-dir -r requirements.txt
+.\main.ps1 --help
 ```
 
-After [saving your tokens in `.env`](#1-put-your-tokens-in-env), check the connection and start the menu:
+Start the dashboard. If `.env`, the primary token, or the target repository is missing, startup outlines what is needed and offers guided setup:
 
 ```powershell
-python main.py doctor
-python main.py
+.\main.ps1
+.\main.ps1 doctor
 ```
 
-If Windows provides the `py` launcher instead of `python`, use `py -3 main.py` with the same arguments. A project virtual environment can also be used as `.venv\Scripts\python main.py`.
+If Windows provides `py` instead of `python`, create the environment with `py -3 -m venv .venv`. PowerShell 5.1 and PowerShell 7 are supported. If your execution policy prevents running `.ps1` scripts, run `.venv\Scripts\python main.py` with the same arguments. No virtual-environment activation is needed.
 
 **Optional Bash:** install [Git for Windows](https://git-scm.com/downloads/win), open **Git Bash** in the project folder, and use your Windows Python installation:
 
@@ -95,28 +99,26 @@ Use your distribution's package manager to install the tools:
 | Alpine | `sudo apk add bash python3 git` |
 | Void | `sudo xbps-install -S bash python3 git` |
 
-On other distributions, install the equivalent Bash and Python packages. Run `python3 --version` (or `python3.11 --version` for openSUSE) to check the version. Older distribution releases may need a newer Python package; keep the system Python and select a separate 3.11+ installation using `GETIT_UNLOCK_PYTHON` below. If you are already root, omit `sudo`.
+On other distributions, install the equivalent Bash and Python packages. Run `python3 --version` (or `python3.11 --version` for openSUSE) to check the version. Older distribution releases may need a newer Python package; keep the system Python and use a separate 3.11+ installation to create `.venv`. If you are already root, omit `sudo`.
 
-On openSUSE, if Python is available only as `python3.11`, select it before running the launcher:
-
-```bash
-export GETIT_UNLOCK_PYTHON=python3.11
-```
-
-From the project folder, check the launcher:
+From the project folder, install the libraries into a virtual environment and check the launcher. Some distributions package `venv`/`pip` separately; Debian/Ubuntu users can install `python3-venv` with their package manager if needed:
 
 ```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install --no-cache-dir -r requirements.txt
 bash main.sh --help
 ```
 
-After [saving your tokens in `.env`](#1-put-your-tokens-in-env), check the connection and start the menu:
+On openSUSE, if the compatible interpreter is named `python3.11`, replace the first command with `python3.11 -m venv .venv`. The launcher then selects `.venv/bin/python` automatically. No virtual-environment activation is needed.
+
+Start the menu and follow guided setup, or [save your tokens in `.env`](#1-put-your-tokens-in-env) before checking the connection:
 
 ```bash
-bash main.sh doctor
 bash main.sh
+bash main.sh doctor
 ```
 
-**Optional Python:** use `python3 main.py doctor` and `python3 main.py`, or the executable name of your Python 3.11+ installation. All workflow arguments work with either launcher. Using `bash main.sh` does not require `chmod` or an executable filesystem.
+**Optional Python:** use `.venv/bin/python main.py doctor` and `.venv/bin/python main.py`. All workflow arguments work with either launcher. Using `bash main.sh` does not require `chmod` or an executable filesystem. If you selected a versioned Python executable, use it to create `.venv` and install requirements there.
 
 ### Android: Termux
 
@@ -124,28 +126,29 @@ Install a current [Termux release](https://termux.dev/en/), then install the too
 
 ```bash
 pkg update
-pkg install bash python git
+pkg install bash python python-pip git
 git clone https://github.com/Antech-greyhat/GetIt-Unlock.git
 cd GetIt-Unlock
+python -m pip install --no-cache-dir -r requirements.txt
 bash main.sh --help
 ```
 
-Keep the project in Termux's home directory. Follow [Step 1](#1-put-your-tokens-in-env) to create `.env` there, then run:
+Keep the project in Termux's home directory. Launch to follow guided setup, or use [Step 1](#1-put-your-tokens-in-env) to create `.env` there:
 
 ```bash
-bash main.sh doctor
 bash main.sh
+bash main.sh doctor
 ```
 
 **Optional Python:** use `python main.py doctor` and `python main.py` in the same folder.
 
 ### macOS
 
-Install Python 3.11+ from [python.org](https://www.python.org/downloads/macos/) or your package manager. Use the built-in Bash to run `bash main.sh doctor` and `bash main.sh` after configuring `.env`. You can also run `python3 main.py` directly.
+Install Python 3.11+ from [python.org](https://www.python.org/downloads/macos/) or your package manager. Create `.venv` and install `requirements.txt` using the Linux commands above. Use the built-in Bash to run `bash main.sh`, or run `.venv/bin/python main.py` directly.
 
-### How Bash finds Python
+### How the launchers find Python
 
-`main.sh` tries a compatible project `.venv` first (`.venv/bin/python` or `.venv/Scripts/python.exe`), then `python3`, `python`, and the Windows `py -3` launcher. It skips interpreters older than 3.11 and reports an error if none are suitable.
+`main.sh` and `main.ps1` try a compatible project `.venv` first, then `python3`, `python`, and the Windows `py -3` launcher. PowerShell prefers `.venv/Scripts/python.exe`; Bash prefers `.venv/bin/python`. They skip interpreters older than 3.11 and report installation guidance if none are suitable. If Python packages are missing, startup prints the install command for the selected interpreter.
 
 To select a particular interpreter, set one executable name or path in your Bash shell:
 
@@ -154,7 +157,19 @@ export GETIT_UNLOCK_PYTHON="/path/to/python3.11"
 bash main.sh --help
 ```
 
-For Git Bash, a Windows path can be written as `/c/Users/YourName/path/to/python.exe`. Set this variable in the shell, rather than in `.env`. Both launchers read `.env` and save `.achievement-state` in the current working directory; use `--env-file` and `--state-dir` to choose other paths.
+In PowerShell, use `$env:GETIT_UNLOCK_PYTHON = 'C:\path\to\python.exe'`. For Git Bash, a Windows path can be written as `/c/Users/YourName/path/to/python.exe`. This override takes precedence over `.venv`; install `requirements.txt` into the interpreter you select. To restore automatic selection, run `unset GETIT_UNLOCK_PYTHON` in Bash or `Remove-Item Env:GETIT_UNLOCK_PYTHON` in PowerShell. Set this variable in the shell, rather than in `.env`. All launchers read `.env` and save `.achievement-state` in the current working directory; use `--env-file` and `--state-dir` to choose other paths.
+
+### Startup, menus, and exit
+
+Startup displays the developer banner, educational-use notice, Python/library versions, configuration status, and helper requirements before the main dashboard. Local checks do not connect to GitHub. Missing settings offer **Start guided setup**, **Read setup requirements**, **Continue to the dashboard**, or **Exit**. Helpers are requested when a selected workflow needs one.
+
+Use **Up/Down**, **j/k**, or **Tab/Shift+Tab** to move; **Enter** selects; a menu number selects directly. **Esc**, **q**, or **0** goes back, and exits from the dashboard. **Ctrl+C** exits the complete session; **Ctrl+D** or **Ctrl+Z** exits at a menu prompt. Tokens use hidden input. Narrow terminals use a compact banner and stacked requirement cards.
+
+Use `bash main.sh --plain` (Windows: `.\main.ps1 --plain`) for numbered menus without cursor control. Add `--no-animation` to keep static loading messages. `NO_COLOR` disables color. Redirected output is static, and `--json` commands retain clean JSON.
+
+The exit screen shows your developer profile and clickable **Star**/**Fork** URLs, followed by **Thanks for using this tool, dont forget to star and fork**. Links open in terminals that support hyperlinks; the complete URLs can also be copied. No browser opens automatically and no stars/forks are submitted automatically.
+
+For local setup guidance at any time, run `bash main.sh requirements` (Windows: `.\main.ps1 requirements`). In the dashboard, **Requirements and advanced tools** also contains the history-reset preview. **Check connection** lets you select a workflow so helper access and repository features are checked before running.
 
 ---
 
@@ -249,10 +264,10 @@ For Pull Shark, Pair Extraordinaire, and YOLO, the target must have at least one
 
 Open a terminal **inside this project folder** and run the connection check for your operating system.
 
-Windows (Python default):
+Windows (PowerShell default):
 
 ```powershell
-python main.py doctor
+.\main.ps1 doctor
 ```
 
 Linux / Termux (Bash default), or optional Bash on Windows:
@@ -263,7 +278,7 @@ bash main.sh doctor
 
 You should see `Connected as your-username to your-username/your-repository`, with your actual account and target. Resolve any error using [Common fixes](#common-fixes) before running a workflow. `doctor` checks access without creating GitHub activity; each badge below also lists any specific setup it needs.
 
-For direct Python on Linux, use `python3` instead of `python`. On Windows, an existing project virtual environment can be used as `.venv\Scripts\python`. No extra Python packages are needed to run the source.
+For direct Python, use the interpreter where the requirements are installed: `.venv/bin/python` on Linux or `.venv\Scripts\python` on Windows.
 
 The module launcher is `python -m getit_unlock`; after installing the package, the equivalent command is `getit-unlock`.
 
@@ -316,7 +331,7 @@ Start the menu from the project folder:
 python main.py
 ```
 
-Use **Up/Down** to highlight an option and **Enter** to select it. You can also press its number. **Esc** goes back.
+Use **Up/Down** to highlight an option and **Enter** to select it. You can also press its number. **Esc** goes back. Review screens default to **Keep as preview**; select **Run this workflow** when you want to execute.
 
 1. Check that the dashboard shows your repository in **username/repository** format.
 2. Select **Unlock an achievement**.
@@ -588,6 +603,7 @@ If GitHub requires a wait longer than five minutes or retries are exhausted, the
 
 | Message or problem | What to do |
 | --- | --- |
+| `Missing Python packages` | Follow the install command printed at startup, or [install requirements for your OS](#run-on-your-operating-system). Use the same Python interpreter for installation and launch. |
 | `401` / invalid token | Check which account created the token and replace it if expired or incorrect. Save it in the appropriate `.env` line. |
 | `403` / `404` | Check `TARGET_REPO`, token permissions, and any required helper invitation. `doctor` cannot test every write permission. |
 | `You don't have access to repository options` | Open [personal token settings](https://github.com/settings/tokens) to create a token. Only the owner needs repository settings for invitations and features. |
@@ -618,7 +634,9 @@ git clone https://github.com/Antech-greyhat/GetIt-Unlock.git
 cd GetIt-Unlock
 ```
 
-Alternatively, open [the repository](https://github.com/Antech-greyhat/GetIt-Unlock), choose **Code → Download ZIP**, and extract it. Open a terminal in the extracted folder, then follow [Step 1](#1-put-your-tokens-in-env).
+Alternatively, open [the repository](https://github.com/Antech-greyhat/GetIt-Unlock), choose **Code → Download ZIP**, and extract it.
+
+After cloning or extracting, open a terminal in the project folder and follow [the setup and launch commands for your operating system](#run-on-your-operating-system) to install the required libraries and start the dashboard. Guided setup can configure your accounts, or you can [save your tokens in `.env`](#1-put-your-tokens-in-env) yourself.
 
 The downloaded folder contains this app. `TARGET_REPO` identifies the personal GitHub repository that receives the workflow activity. Git is needed for cloning only; the workflows use GitHub's API.
 
@@ -632,6 +650,8 @@ Use these folders when changing the CLI, editing its messages, or looking for do
 | --- | --- |
 | `main.py` | Launcher for `python main.py` commands |
 | `main.sh` | Bash launcher for Linux, Termux, macOS, and optional Windows Bash |
+| `main.ps1` | PowerShell launcher for Windows and PowerShell 7 |
+| `DISCLAIMER.md` | Educational-use notice and user responsibility |
 | `getit_unlock/cli/` | Commands, account setup, and terminal menus |
 | `getit_unlock/core/` | Achievement definitions, configuration, and saved progress |
 | `getit_unlock/github/` | GitHub API client and public badge checks |
