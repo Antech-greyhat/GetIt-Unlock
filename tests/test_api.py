@@ -35,13 +35,27 @@ def http_error(code, message="Rejected", headers=None):
                      io.BytesIO(json.dumps({"message": message}).encode()))
 
 
+class FakeTime:
+    def __init__(self):
+        self.now = 0.0
+        self.sleeps = []
+
+    def clock(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+
 class APITests(unittest.TestCase):
     def client(self, *responses, **kwargs):
         opener = FakeOpener(*responses)
-        sleeps = []
-        client = GitHubClient("secret-token", opener=opener, sleep=sleeps.append,
-                              limiter=WriteLimiter(interval=0), **kwargs)
-        return client, opener, sleeps
+        timer = FakeTime()
+        client = GitHubClient("secret-token", opener=opener, sleep=timer.sleep,
+                              limiter=WriteLimiter(interval=0, request_interval=0,
+                                                   clock=timer.clock, sleep=timer.sleep), **kwargs)
+        return client, opener, timer.sleeps
 
     def test_auth_json_and_version_headers(self):
         client, opener, _ = self.client({"number": 1})
@@ -132,10 +146,11 @@ class APITests(unittest.TestCase):
 
     def test_graphql_partial_mutation_is_never_replayed_even_with_rate_error(self):
         client, opener, sleeps = self.client({"data": {"create": {"id": "1"}}, "errors": [{"type": "RATE_LIMITED", "message": "rate limit exceeded"}]})
-        with self.assertRaises(GitHubError):
+        with self.assertRaisesRegex(GitHubError, "Inspect remote state") as error:
             client.graphql("mutation Create { create { id } }", {}, mutation=True)
         self.assertEqual(len(opener.requests), 1)
         self.assertEqual(sleeps, [])
+        self.assertEqual(error.exception.retry_after, 60)
 
     def test_malformed_retry_header_uses_safe_secondary_backoff(self):
         client, _, sleeps = self.client(http_error(429, headers={"Retry-After": "nan"}), {})
@@ -197,3 +212,87 @@ class APITests(unittest.TestCase):
         primary.request("POST", "/test", {})
         helper.request("PATCH", "/test", {})
         self.assertEqual(sleeps, [8])
+
+    def test_rest_reads_and_graphql_queries_share_pacing_with_writes(self):
+        timer = FakeTime()
+        limiter = WriteLimiter(clock=timer.clock, sleep=timer.sleep)
+        primary = GitHubClient("a", limiter=limiter, opener=FakeOpener({}, {}, {}))
+        helper = GitHubClient("b", limiter=limiter, opener=FakeOpener({"data": {"ok": True}}, {}))
+        primary.request("POST", "/test", {})  # t=0, first request is immediate
+        primary.request("GET", "/test")  # t=1
+        helper.graphql("query { ok }", {})  # t=2, query does not advance write pacing
+        helper.request("PATCH", "/test", {})  # t=8
+        primary.request("GET", "/test")  # t=9
+        self.assertEqual(timer.sleeps, [1, 1, 6, 1])
+
+    def test_read_retries_pass_through_request_pacing(self):
+        timer = FakeTime()
+        opener = FakeOpener(http_error(503), {})
+        client = GitHubClient("a", opener=opener, sleep=timer.sleep,
+                              limiter=WriteLimiter(request_interval=3, clock=timer.clock, sleep=timer.sleep))
+        client.request("GET", "/test")
+        self.assertEqual(timer.sleeps, [2, 1])
+        self.assertEqual(len(opener.requests), 2)
+
+    def test_shared_secondary_cooldown_survives_exhausted_retries(self):
+        timer = FakeTime()
+        limiter = WriteLimiter(clock=timer.clock, sleep=timer.sleep)
+        primary = GitHubClient("a", limiter=limiter, retries=0, opener=FakeOpener(http_error(429)))
+        helper = GitHubClient("b", limiter=limiter, opener=FakeOpener({}))
+        with self.assertRaises(GitHubError):
+            primary.request("GET", "/test")
+        self.assertEqual(timer.sleeps, [])
+        helper.request("GET", "/test")
+        self.assertEqual(timer.sleeps, [60])
+
+    def test_shared_long_cooldown_stops_helper_before_sending(self):
+        timer = FakeTime()
+        limiter = WriteLimiter(clock=timer.clock, sleep=timer.sleep)
+        primary = GitHubClient("a", limiter=limiter, opener=FakeOpener(http_error(429, headers={"Retry-After": "600"})))
+        opener = FakeOpener({})
+        helper = GitHubClient("b", limiter=limiter, opener=opener)
+        with self.assertRaises(GitHubError):
+            primary.request("POST", "/test", {})
+        with self.assertRaises(GitHubError) as error:
+            helper.request("GET", "/test")
+        self.assertEqual(error.exception.retry_after, 600)
+        self.assertEqual(opener.requests, [])
+        self.assertEqual(timer.sleeps, [])
+
+    def test_partial_graphql_rate_error_pauses_other_client_without_replay(self):
+        for errors in ([{"type": "RATE_LIMITED", "message": "rate limit exceeded"}],
+                       [{"type": "RATE_LIMITED", "message": "rate limit exceeded"}, {"message": "secret-token forbidden"}]):
+            with self.subTest(errors=errors):
+                timer = FakeTime()
+                limiter = WriteLimiter(clock=timer.clock, sleep=timer.sleep)
+                opener = FakeOpener({"data": {"create": {"id": "1"}}, "errors": errors})
+                primary = GitHubClient("secret-token", limiter=limiter, opener=opener)
+                helper = GitHubClient("b", limiter=limiter, opener=FakeOpener({}))
+                with self.assertRaises(GitHubError) as error:
+                    primary.graphql("mutation Create { create { id } }", {}, mutation=True)
+                self.assertNotIn("secret-token", str(error.exception))
+                self.assertEqual(timer.sleeps, [])
+                self.assertEqual(len(opener.requests), 1)
+                helper.request("GET", "/test")
+                self.assertEqual(timer.sleeps, [60])
+
+    def test_primary_quota_does_not_block_helper_or_other_resource(self):
+        timer = FakeTime()
+        limiter = WriteLimiter(clock=timer.clock, sleep=timer.sleep)
+        primary = GitHubClient("a", limiter=limiter, clock=lambda: timer.now + 1000,
+                               opener=FakeOpener(response_with_headers({}, {
+                                   "x-ratelimit-remaining": "0", "x-ratelimit-reset": "2000"}),
+                                   {"data": {"ok": True}}))
+        helper = GitHubClient("b", limiter=limiter, opener=FakeOpener({}))
+        primary.request("GET", "/test")
+        helper.request("GET", "/test")
+        primary.graphql("query { ok }", {})
+        with self.assertRaises(GitHubError):
+            primary.request("GET", "/test")
+        self.assertEqual(timer.sleeps, [1, 1])
+
+    def test_invalid_api_pacing_intervals_are_rejected(self):
+        for value in (-1, float("nan"), float("inf")):
+            for field in ("interval", "request_interval"):
+                with self.subTest(value=value, field=field), self.assertRaises(ValueError):
+                    WriteLimiter(**{field: value})

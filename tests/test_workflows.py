@@ -1,15 +1,20 @@
 import base64
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
-from getit_unlock.github.api import GitHubError
+from getit_unlock.cli.commands import build_parser, execute_run, make_runner
+from getit_unlock.github.api import GitHubClient, GitHubError, WriteLimiter
 from getit_unlock.core.config import Config
 from getit_unlock.messages.templates import render_messages
 from getit_unlock.core.state import StateStore
 from getit_unlock.workflows.runner import WorkflowRunner
+from tests.test_api import FakeOpener, FakeTime
 
 
 REPO = "/repos/alice/lab"
@@ -143,6 +148,29 @@ class WorkflowTests(unittest.TestCase):
     def execute(self, workflow):
         self.runner.preflight(workflow)
         return self.runner.run_one(workflow, self.store)
+
+    def test_repeated_workflow_with_zero_operation_interval_keeps_api_pacing(self):
+        timer = FakeTime()
+        issue = {"number": 8, "html_url": "https://github.com/alice/lab/issues/8", "created_at": "2026-01-01T00:00:00Z"}
+        closed = {"state": "closed", "closed_at": "2026-01-01T00:00:08Z"}
+        opener = FakeOpener(self.primary.user, self.primary.repo, issue, {}, closed, issue, {}, closed)
+        limiter = WriteLimiter(clock=timer.clock, sleep=timer.sleep)
+        primary = GitHubClient("secret-primary", limiter=limiter, opener=opener)
+        runner = WorkflowRunner(self.config, primary)
+        args = build_parser().parse_args(["run", "quickdraw", "--count", "2", "--interval", "0",
+                                         "--execute", "--skip-badge-check", "--plain"])
+        with redirect_stdout(io.StringIO()), patch("getit_unlock.cli.commands.make_runner", return_value=runner):
+            execute_run(args, self.config, Path(self.temp.name))
+        self.assertEqual(timer.sleeps, [1, 1, 8, 1, 7, 8, 1])
+        self.assertEqual([request.method for request in opener.requests],
+                         ["GET", "GET", "POST", "PATCH", "GET", "POST", "PATCH", "GET"])
+        self.assertEqual(self.store.count("alice", "alice/lab", "quickdraw"), 2)
+
+    def test_workflow_clients_share_default_limiter(self):
+        runner = make_runner(self.config)
+        self.assertIs(runner.primary.limiter, runner.helper.limiter)
+        self.assertEqual(runner.primary.limiter.request_interval, 1)
+        self.assertEqual(runner.primary.limiter.interval, 8)
 
     def test_pull_request_uses_default_branch_and_merge_head_guard(self):
         result = self.execute("pull-shark")
