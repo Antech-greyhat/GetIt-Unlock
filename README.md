@@ -595,7 +595,7 @@ In the menu, choose **Clean up merged branches**, read the preview, then select 
 
 ## Rate limits: let the app wait
 
-The app spaces API writes **eight seconds apart** and pauses between operations. It honors GitHub's rate-limit headers for REST and GraphQL. A secondary limit without a retry time starts with a wait of at least 60 seconds; repeated limits get longer waits.
+The app spaces API requests **one second apart**, API writes **eight seconds apart**, and pauses between operations (10 seconds by default). Reads, writes, and retries share pacing across the primary and helper accounts, even with `--interval 0`. It honors GitHub's rate-limit headers for REST and GraphQL. A secondary limit pauses both clients; without a retry time, waits start at 60 seconds and grow on repeated limits.
 
 If GitHub requires a wait longer than five minutes or retries are exhausted, the run stops with a retry hint. Completed progress stays saved. Wait before restarting; if branch cleanup hit the limit, run `python main.py cleanup --execute` after the wait. See [API pacing and retries](docs/advanced.md#api-pacing-and-retries) for details.
 

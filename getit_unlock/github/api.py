@@ -2,6 +2,7 @@
 import json
 import math
 import time
+from threading import Lock
 from datetime import timezone
 from email.utils import parsedate_to_datetime
 from http.client import HTTPException
@@ -24,17 +25,41 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class WriteLimiter:
-    """Share this limiter between primary and helper clients."""
-    def __init__(self, interval=8.0, *, clock=time.monotonic, sleep=time.sleep):
+    """Pace all requests and share secondary cooldowns across clients in a run."""
+    def __init__(self, interval=8.0, *, request_interval=1.0, clock=time.monotonic, sleep=time.sleep):
+        if any(not math.isfinite(value) or value < 0 for value in (interval, request_interval)):
+            raise ValueError("API pacing intervals must be finite and non-negative.")
         self.interval, self.clock, self.sleep = interval, clock, sleep
+        self.request_interval = request_interval
         self.last = None
+        self.last_request = None
+        self.cooldown_until = 0.0
+        self._lock = Lock()
 
-    def wait(self):
-        if self.last is not None:
-            delay = self.interval - (self.clock() - self.last)
+    def defer(self, delay):
+        """Retain a rejected request's cooldown even when retries are exhausted."""
+        with self._lock:
+            self.cooldown_until = max(self.cooldown_until, self.clock() + delay)
+
+    def wait(self, *, read_only=False, max_wait=300, report=None):
+        with self._lock:
+            now = self.clock()
+            cooldown = self.cooldown_until - now
+            delay = max(0, cooldown)
+            if self.last_request is not None:
+                delay = max(delay, self.request_interval - (now - self.last_request))
+            if not read_only and self.last is not None:
+                delay = max(delay, self.interval - (now - self.last))
+            if delay > max_wait:
+                raise GitHubError(f"GitHub rate limited. Retry after at least {math.ceil(delay)} seconds; progress has been kept.",
+                                  retry_after=delay)
             if delay > 0:
+                if cooldown > 0 and report:
+                    report(f"GitHub rate limit: waiting {math.ceil(delay)} seconds")
                 self.sleep(delay)
-        self.last = self.clock()
+            self.last_request = self.clock()
+            if not read_only:
+                self.last = self.last_request
 
 
 class GitHubClient:
@@ -43,7 +68,7 @@ class GitHubClient:
     def __init__(self, token, *, limiter=None, opener=None, sleep=time.sleep,
                  timeout=30, retries=2, max_wait=300, clock=time.time, report=None):
         self._token = token
-        self.limiter = limiter or WriteLimiter()
+        self.limiter = limiter or WriteLimiter(sleep=sleep)
         self.opener = opener or build_opener(NoRedirect())
         self.sleep, self.timeout, self.retries, self.max_wait = sleep, timeout, retries, max_wait
         self.clock = clock
@@ -122,8 +147,7 @@ class GitHubClient:
         resource = "graphql" if path == "/graphql" else "core"
         for attempt in range(self.retries + 1):
             self._respect_quota(resource)
-            if not read_only:
-                self.limiter.wait()
+            self.limiter.wait(read_only=read_only, max_wait=self.max_wait, report=self.report)
             request = Request(self.BASE + path, data=data, method=method, headers={
                 "Authorization": f"Bearer {self._token}",
                 "Accept": "application/vnd.github+json",
@@ -144,16 +168,21 @@ class GitHubClient:
                     raise GitHubError("GitHub returned invalid JSON; inspect remote state before retrying writes.") from exc
                 if path == "/graphql" and isinstance(result, dict) and result.get("errors"):
                     errors = result["errors"]
-                    only_limits = all(error.get("type") == "RATE_LIMITED" or "rate limit" in error.get("message", "").lower() for error in errors)
+                    limits = [error.get("type") == "RATE_LIMITED" or "rate limit" in error.get("message", "").lower() for error in errors]
                     partial_data = result.get("data") or {}
                     rejected = isinstance(partial_data, dict) and not any(value is not None for value in partial_data.values())
-                    if only_limits and rejected:
+                    if any(limits):
                         delay = self._retry_delay(headers, attempt, limited=True)
-                        if attempt < self.retries:
+                        if headers.get("x-ratelimit-remaining") != "0":
+                            self.limiter.defer(delay)
+                        if all(limits) and rejected and attempt < self.retries:
                             self._pause_for_limit(delay)
                             self.quota_resets.pop(resource, None)
                             continue
-                        raise GitHubError(f"GitHub GraphQL rate limited. Retry after at least {math.ceil(delay)} seconds.", retry_after=delay)
+                        messages = "; ".join(error.get("message", "GraphQL error") for error in errors)
+                        hint = " Inspect remote state before retrying writes." if not read_only and not rejected else ""
+                        raise GitHubError(self._clean(f"GitHub GraphQL: {messages}. Rate limited; retry after at least {math.ceil(delay)} seconds.{hint}"),
+                                          retry_after=delay)
                 return result
             except HTTPError as exc:
                 try:
@@ -171,6 +200,8 @@ class GitHubClient:
                     or "rate limit" in str(message).lower()))
                 retryable = limited or (read_only and exc.code >= 500)
                 delay = self._retry_delay(headers, attempt, limited=limited)
+                if limited and headers.get("x-ratelimit-remaining") != "0":
+                    self.limiter.defer(delay)
                 if retryable and attempt < self.retries and delay <= self.max_wait:
                     if limited:
                         self._pause_for_limit(delay)

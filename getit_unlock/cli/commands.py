@@ -106,7 +106,7 @@ def build_parser():
     mode = run.add_mutually_exclusive_group()
     mode.add_argument("--execute", action="store_true", help="Perform the displayed GitHub writes")
     mode.add_argument("--dry-run", action="store_true", help="Preview without credentials or network (the default)")
-    run.add_argument("--interval", type=interval_value, default=10.0, help="Seconds between operations; API writes are also paced (default: 10)")
+    run.add_argument("--interval", type=interval_value, default=10.0, help="Seconds between operations; API request and write pacing still apply (default: 10)")
     run.add_argument("--coauthor-name")
     run.add_argument("--coauthor-email")
     run.add_argument("--category-id")
